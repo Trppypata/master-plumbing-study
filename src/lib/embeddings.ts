@@ -1,9 +1,9 @@
-'use server';
-
 // Embeddings utility using OpenAI text-embedding-3-small
 // Cost: ~$0.02 per 1M tokens (very affordable)
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const EMBEDDING_MODEL = 'text-embedding-3-small';
+const EMBEDDING_DIMENSION = 1536;
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIMENSION = 1536;
 

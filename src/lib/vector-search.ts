@@ -1,5 +1,3 @@
-'use server';
-
 import { supabase, isSupabaseConfigured } from './supabase';
 import { generateEmbedding } from './embeddings';
 
