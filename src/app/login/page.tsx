@@ -146,10 +146,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Demo mode notice */}
-        <p className="text-center text-xs text-gray-400 mt-6">
-          Configure Supabase credentials in .env.local to enable authentication
-        </p>
+        {/* Footer */}
       </div>
     </div>
   );
