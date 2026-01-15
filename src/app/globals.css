@@ -1,0 +1,180 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Earth-tone Color Palette */
+  --color-cream: #F5F5F0;
+  --color-sand: #E6D8C3;
+  --color-tan: #C2A68C;
+  --color-forest: #5D866C;
+  
+  /* Semantic colors */
+  --color-bg: var(--color-cream);
+  --color-card: #FFFFFF;
+  --color-border: var(--color-sand);
+  --color-primary: var(--color-forest);
+  --color-accent: var(--color-tan);
+  
+  /* Text */
+  --color-text: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  
+  /* Status */
+  --color-success: var(--color-forest);
+  --color-danger: #DC2626;
+  --color-warning: #D97706;
+}
+
+/* Base Styles */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* 
+   COMPONENT STYLES 
+   (Kept for backward compatibility until fully refactored, 
+    but removed manual utilities like .p-4, .flex which Tailwind provides)
+*/
+
+/* Layout Container */
+.container {
+  @apply mx-auto px-4 max-w-[1024px];
+}
+
+/* Navigation - Keeping custom styling for Glassmorphism */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+.nav-inner {
+  @apply max-w-[1024px] mx-auto px-4 h-16 flex items-center justify-between;
+}
+.nav-brand { @apply flex items-center gap-2 font-semibold text-sm tracking-tight; }
+.nav-logo {
+  @apply w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs tracking-tighter text-white;
+  background: var(--color-forest);
+}
+.nav-links { @apply flex items-center gap-6 text-sm font-medium; }
+.nav-link { @apply text-gray-500 hover:text-gray-900 transition-colors; }
+.nav-link.active { @apply text-gray-900; }
+
+/* Cards & Buttons */
+.card {
+  @apply bg-white border border-[var(--color-border)] rounded-xl p-5 shadow-sm transition-all;
+}
+.card:hover { @apply shadow-md; }
+.card-interactive:hover { @apply -translate-y-px; }
+
+.btn { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-all; }
+.btn-primary { 
+  @apply text-white; 
+  background: var(--color-forest);
+}
+.btn-primary:hover { background: #4a7359; }
+
+.btn-secondary { @apply bg-white text-gray-900 border border-[var(--color-border)] hover:bg-[var(--color-cream)] hover:border-[var(--color-tan)]; }
+.btn-ghost { @apply bg-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100/50; }
+
+/* Flashcard Specifics (Complex 3D transforms) */
+.perspective-1000 { perspective: 1000px; }
+.transform-style-3d { transform-style: preserve-3d; }
+.backface-hidden { backface-visibility: hidden; }
+.rotate-y-180 { transform: rotateY(180deg); }
+
+.flashcard-container {
+  perspective: 1000px;
+  width: 100%;
+  max-width: 640px;
+  height: 400px;
+  margin: 0 auto;
+  cursor: pointer;
+}
+.flashcard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s ease;
+  transform-style: preserve-3d;
+}
+.flashcard.flipped { transform: rotateY(180deg); }
+.flashcard-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+.flashcard-front {
+  background: white;
+  border: 1px solid var(--color-border);
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+.flashcard-back {
+  background: #111827;
+  color: white;
+  transform: rotateY(180deg);
+  justify-content: space-between;
+}
+
+/* Animations */
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(30px, -50px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.9); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+.animate-blob { animation: blob 7s infinite; }
+.animation-delay-2000 { animation-delay: 2s; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 8s linear infinite;
+}
+
+/* Elastic Transition */
+.ease-elastic {
+  transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Gradient Text Support */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+.text-transparent {
+  color: transparent;
+}
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+.from-orange-500 {
+  --tw-gradient-from: #f97316;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(249, 115, 22, 0));
+}
+.to-red-500 {
+  --tw-gradient-to: #ef4444;
+}

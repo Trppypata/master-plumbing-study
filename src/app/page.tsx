@@ -1,0 +1,212 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Subject } from '@/types';
+import DailyQuote from '@/components/DailyQuote';
+import { supabase } from '@/lib/supabase';
+import { 
+  Flame, 
+  CheckCircle2, 
+  Timer, 
+  AlertTriangle, 
+  BookOpen, 
+  Scroll, 
+  Calculator, 
+  Wrench, 
+  ArrowRight,
+  Brain,
+  Library
+} from 'lucide-react';
+
+// Demo data
+const demoSubjects: Subject[] = [
+  { id: '1', name: 'Plumbing Code', slug: 'plumbing-code', description: 'Venting, drainage, traps & materials.', icon: '📜', color: '#5D866C', display_order: 1, created_at: '' },
+  { id: '2', name: 'Plumbing Arithmetic', slug: 'plumbing-arithmetic', description: 'Pipe sizing, pressures, fixture units.', icon: '🔢', color: '#C2A68C', display_order: 2, created_at: '' },
+  { id: '3', name: 'Sanitation & Design', slug: 'sanitation-design', description: 'System layout, flow, wastewater safety.', icon: '🏗️', color: '#5D866C', display_order: 3, created_at: '' },
+  { id: '4', name: 'Practical Problems', slug: 'practical-problems', description: 'Troubleshooting scenarios & job-site logic.', icon: '🔧', color: '#C2A68C', display_order: 4, created_at: '' },
+];
+
+// Map slug to Lucide icon
+const getSubjectIcon = (slug: string) => {
+  switch(slug) {
+    case 'plumbing-code': return <Scroll className="w-6 h-6" />;
+    case 'plumbing-arithmetic': return <Calculator className="w-6 h-6" />;
+    case 'sanitation-design': return <Wrench className="w-6 h-6" />; // Using Wrench as generic structure icon
+    case 'practical-problems': return <AlertTriangle className="w-6 h-6" />;
+    default: return <BookOpen className="w-6 h-6" />;
+  }
+};
+
+const demoStats = {
+  totalCards: 482,
+  cardsToday: 24,
+  examReadiness: 68,
+  streak: 3,
+  weakestSubject: demoSubjects[1],
+  subjectStats: [
+    { subject: demoSubjects[0], progressPercent: 75, needsReview: 12 },
+    { subject: demoSubjects[1], progressPercent: 42, needsReview: 28 },
+    { subject: demoSubjects[2], progressPercent: 60, needsReview: 5 },
+    { subject: demoSubjects[3], progressPercent: 85, needsReview: 0 },
+  ],
+};
+
+export default function HomePage() {
+  const [stats] = useState(demoStats);
+  const [mistakeCount, setMistakeCount] = useState(0);
+  const greeting = new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening';
+  const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  
+  // Using generic client since we are in single-user mode for now
+  // const supabase = createClientComponentClient(); -> This caused runtime error due to dep update
+
+  useEffect(() => {
+    async function loadMistakes() {
+      const { count } = await supabase
+        .from('mistakes_log')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_resolved', false);
+      
+      if (count !== null) setMistakeCount(count);
+    }
+    loadMistakes();
+  }, []);
+
+  return (
+    <div className="animate-fade-in pb-20 container mx-auto px-4">
+      {/* Header */}
+      <div className="mb-8 mt-2">
+        <p className="text-xs font-semibold uppercase tracking-widest text-forest mb-1">
+          {dateStr}
+        </p>
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+          Good {greeting}, Plumber
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Ready to master the code today?
+        </p>
+      </div>
+
+      {/* ===== BENTO GRID ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[140px]">
+
+        {/* Readiness - Large 2x2 */}
+        <div className="col-span-1 sm:col-span-2 row-span-2 relative overflow-hidden rounded-xl bg-gradient-to-br from-[#F0FDF4] to-white border border-forest/20 p-6 flex flex-col justify-between group">
+          <div className="absolute -right-8 -top-8 w-32 h-32 bg-forest rounded-full opacity-5 group-hover:scale-150 transition-transform duration-700"></div>
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-forest">
+            Exam Readiness
+          </span>
+          <div>
+            <div className="text-[4rem] font-black tracking-tighter leading-none text-gray-900">
+              {stats.examReadiness}%
+            </div>
+            <div className="w-full h-2 bg-sand/40 rounded-full mt-4 overflow-hidden">
+              <div 
+                className="h-full bg-forest rounded-full transition-all duration-1000 ease-out" 
+                style={{ width: `${stats.examReadiness}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Quote - 2x2 */}
+        <div className="col-span-1 sm:col-span-2 row-span-2">
+          <DailyQuote />
+        </div>
+
+        {/* Streak - 1x1 */}
+        <div className="col-span-1 row-span-1 card group hover:border-orange-200 transition-colors bg-gradient-to-br from-orange-50 to-white border-orange-200/50 flex flex-col justify-between p-4 cursor-default">
+          <Flame className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
+          <div>
+            <div className="text-2xl font-bold text-gray-900">{stats.streak} Days</div>
+            <span className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold">Streak</span>
+          </div>
+        </div>
+
+        {/* Mistake Bank - 1x1 */}
+        <Link href="/mistakes" className="col-span-1 row-span-1 card group hover:border-red-200 transition-colors bg-gradient-to-br from-red-50 to-white border-red-200/50 flex flex-col justify-between p-4 cursor-pointer">
+          <Brain className="w-8 h-8 text-red-500 group-hover:rotate-12 transition-transform" />
+          <div>
+            <div className="text-2xl font-bold text-gray-900">{mistakeCount}</div>
+            <span className="text-[10px] uppercase tracking-wider text-red-600 font-semibold">Mistakes</span>
+          </div>
+        </Link>
+        
+        {/* Exam Mode - Wide 2x1 */}
+        <Link href="/exam" className="col-span-1 sm:col-span-2 row-span-1 card group bg-gray-900 text-white p-5 flex items-center justify-between overflow-hidden relative border-none">
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="relative z-10">
+            <div className="text-lg font-bold">Exam Mode</div>
+            <p className="text-xs text-gray-400">Simulate the real test</p>
+          </div>
+          <Timer className="w-8 h-8 relative z-10 text-white/80 group-hover:text-white transition-colors" />
+        </Link>
+
+        {/* Study Modules Header */}
+        <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex items-center gap-3 py-2 mt-2">
+          <h2 className="text-lg font-bold text-gray-900 whitespace-nowrap">Study Modules</h2>
+          <div className="h-px bg-gray-200 flex-grow"></div>
+        </div>
+
+        {/* Subject Cards - 2 columns */}
+        {stats.subjectStats.map((stat) => (
+          <Link
+            key={stat.subject.id}
+            href={`/study/${stat.subject.slug}`}
+            className="col-span-1 sm:col-span-1 row-span-1 card card-interactive group p-4 flex flex-col justify-between h-[140px]"
+          >
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="font-bold text-sm text-gray-900">{stat.subject.name}</h3>
+                <p className="text-[10px] text-gray-500 leading-tight mt-0.5 line-clamp-2">{stat.subject.description}</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center bg-cream group-hover:scale-110 transition-transform duration-300 text-gray-500">
+                {getSubjectIcon(stat.subject.slug)}
+              </div>
+            </div>
+            <div className="mt-auto pt-2">
+              <div className="flex justify-between text-[10px] font-medium mb-1">
+                <span style={{ color: stat.subject.color }}>{stat.progressPercent}%</span>
+                <span className="text-gray-400">{stat.needsReview} due</span>
+              </div>
+              <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${stat.progressPercent}%`, backgroundColor: stat.subject.color }}
+                />
+              </div>
+            </div>
+          </Link>
+        ))}
+
+        {/* Focus Area - 2x1 */}
+        <Link 
+          href={`/study/${stats.weakestSubject.slug}`} 
+          className="col-span-1 sm:col-span-2 row-span-1 card group bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200 p-4 flex items-center gap-4"
+        >
+          <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-orange-100 group-hover:scale-105 transition-transform text-orange-500">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div className="flex-grow">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 block">Needs Focus</span>
+            <div className="font-bold text-gray-900">{stats.weakestSubject.name}</div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-orange-400 group-hover:translate-x-1 transition-transform" />
+        </Link>
+
+        {/* Resources - 2x1 */}
+        <Link href="/resources" className="col-span-1 sm:col-span-2 row-span-1 card group p-4 flex items-center gap-4 bg-white">
+          <div className="w-12 h-12 rounded-xl bg-cream flex items-center justify-center border border-sand group-hover:scale-105 transition-transform text-tan">
+            <Library className="w-6 h-6" />
+          </div>
+          <div className="flex-grow">
+            <div className="font-bold text-gray-900">Resources</div>
+            <span className="text-xs text-gray-500">Formulas & reference</span>
+          </div>
+          <ArrowRight className="w-5 h-5 text-tan group-hover:translate-x-1 transition-transform" />
+        </Link>
+      </div>
+    </div>
+  );
+}

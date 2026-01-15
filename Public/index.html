@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Plumbing | Exam Prep</title>
+    
+    <!-- Fonts: Geist (via CDN for accurate representation) -->
+    <link href="https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/style.css" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Iconify -->
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Geist Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        gray: {
+                            50: '#f9fafb',
+                            100: '#f3f4f6', // Requested Background
+                            200: '#e5e7eb',
+                            800: '#1f2937',
+                            900: '#111827',
+                        },
+                        lime: {
+                            200: '#d9f99d', // Requested Border
+                            300: '#bef264',
+                            400: '#a3e635',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom styles for Flip Card functionality */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        
+        /* Smooth transitions */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Hide scrollbar for clean UI */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col selection:bg-lime-200 selection:text-black">
+
+    <!-- Top Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-lime-200">
+        <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('dashboard')">
+                <div class="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-bold tracking-tighter text-sm">
+                    MP
+                </div>
+                <span class="font-semibold tracking-tight text-sm">Master Plumbing</span>
+            </div>
+            
+            <div class="flex items-center gap-6 text-sm font-medium text-gray-500">
+                <button onclick="switchTab('dashboard')" class="hover:text-black transition-colors" id="nav-dash">Overview</button>
+                <button onclick="switchTab('study')" class="hover:text-black transition-colors" id="nav-study">Flashcards</button>
+                <button onclick="switchTab('resources')" class="hover:text-black transition-colors" id="nav-res">Resources</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-5xl mx-auto px-4 py-8 w-full">
+
+        <!-- SECTION 1: DASHBOARD (COMMAND CENTER) -->
+        <div id="dashboard" class="tab-content active">
+            <div class="mb-8">
+                <h1 class="text-2xl font-semibold tracking-tight mb-2">Study Command Center</h1>
+                <p class="text-gray-500 text-sm">Your path to exam mastery. Focus on weak points.</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white border border-lime-200 rounded-xl p-5 shadow-sm">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <iconify-icon icon="lucide:activity" width="20" class="text-gray-900" stroke-width="1.5"></iconify-icon>
+                        </div>
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Readiness</span>
+                    </div>
+                    <div class="text-3xl font-semibold tracking-tighter">68%</div>
+                    <p class="text-xs text-gray-500 mt-1">Estimated exam probability</p>
+                </div>
+
+                <div class="bg-white border border-lime-200 rounded-xl p-5 shadow-sm">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <iconify-icon icon="lucide:layers" width="20" class="text-gray-900" stroke-width="1.5"></iconify-icon>
+                        </div>
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Cards</span>
+                    </div>
+                    <div class="text-3xl font-semibold tracking-tighter">482</div>
+                    <p class="text-xs text-gray-500 mt-1">Across 4 core subjects</p>
+                </div>
+
+                <div class="bg-white border border-lime-200 rounded-xl p-5 shadow-sm">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <iconify-icon icon="lucide:check-circle" width="20" class="text-gray-900" stroke-width="1.5"></iconify-icon>
+                        </div>
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Today</span>
+                    </div>
+                    <div class="text-3xl font-semibold tracking-tighter">24</div>
+                    <p class="text-xs text-gray-500 mt-1">Cards mastered today</p>
+                </div>
+
+                <div class="bg-white border border-lime-200 rounded-xl p-5 shadow-sm relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-16 h-16 bg-lime-200 opacity-20 rounded-bl-full"></div>
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                            <iconify-icon icon="lucide:alert-triangle" width="20" class="text-red-500" stroke-width="1.5"></iconify-icon>
+                        </div>
+                        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Focus Area</span>
+                    </div>
+                    <div class="text-lg font-semibold tracking-tight truncate">Plumbing Arithmetic</div>
+                    <p class="text-xs text-gray-500 mt-1">Lowest mastery score (42%)</p>
+                </div>
+            </div>
+
+            <!-- Subject Modules -->
+            <h2 class="text-lg font-semibold tracking-tight mb-4">Study Modules</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                
+                <!-- Card 1: Code -->
+                <div class="group bg-white border border-lime-200 rounded-xl p-6 hover:shadow-md transition-all cursor-pointer" onclick="openSubject('code')">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Plumbing Code</h3>
+                            <p class="text-xs text-gray-500 mt-1 mb-4">Venting, drainage, traps & materials.</p>
+                        </div>
+                        <iconify-icon icon="lucide:book-open" width="20" class="text-gray-400 group-hover:text-black transition-colors" stroke-width="1.5"></iconify-icon>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
+                        <div class="bg-black h-1.5 rounded-full" style="width: 75%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>75% Mastered</span>
+                        <span>12 Cards Due</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Arithmetic -->
+                <div class="group bg-white border border-lime-200 rounded-xl p-6 hover:shadow-md transition-all cursor-pointer" onclick="openSubject('math')">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Plumbing Arithmetic</h3>
+                            <p class="text-xs text-gray-500 mt-1 mb-4">Pipe sizing, pressures, fixture units.</p>
+                        </div>
+                        <iconify-icon icon="lucide:calculator" width="20" class="text-gray-400 group-hover:text-black transition-colors" stroke-width="1.5"></iconify-icon>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
+                        <div class="bg-black h-1.5 rounded-full" style="width: 42%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>42% Mastered</span>
+                        <span>28 Cards Due</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Sanitation -->
+                <div class="group bg-white border border-lime-200 rounded-xl p-6 hover:shadow-md transition-all cursor-pointer" onclick="openSubject('sanitation')">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Sanitation & Design</h3>
+                            <p class="text-xs text-gray-500 mt-1 mb-4">System layout, flow, wastewater safety.</p>
+                        </div>
+                        <iconify-icon icon="lucide:pen-tool" width="20" class="text-gray-400 group-hover:text-black transition-colors" stroke-width="1.5"></iconify-icon>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
+                        <div class="bg-black h-1.5 rounded-full" style="width: 60%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>60% Mastered</span>
+                        <span>5 Cards Due</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Practical -->
+                <div class="group bg-white border border-lime-200 rounded-xl p-6 hover:shadow-md transition-all cursor-pointer" onclick="openSubject('practical')">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-semibold text-gray-900">Practical Problems</h3>
+                            <p class="text-xs text-gray-500 mt-1 mb-4">Troubleshooting scenarios & job-site logic.</p>
+                        </div>
+                        <iconify-icon icon="lucide:wrench" width="20" class="text-gray-400 group-hover:text-black transition-colors" stroke-width="1.5"></iconify-icon>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-2 overflow-hidden">
+                        <div class="bg-black h-1.5 rounded-full" style="width: 85%"></div>
+                    </div>
+                    <div class="flex justify-between text-xs text-gray-500">
+                        <span>85% Mastered</span>
+                        <span>0 Cards Due</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: INTERACTIVE FLASHCARDS -->
+        <div id="study" class="tab-content">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <div>
+                    <button onclick="switchTab('dashboard')" class="text-xs text-gray-500 hover:text-black flex items-center gap-1 mb-1">
+                        <iconify-icon icon="lucide:arrow-left" width="14"></iconify-icon> Back to Dashboard
+                    </button>
+                    <h2 class="text-xl font-semibold tracking-tight" id="study-topic-title">Active Session</h2>
+                </div>
+                <div class="flex items-center gap-2 mt-4 md:mt-0">
+                    <span class="text-xs font-medium text-gray-500 bg-white border border-lime-200 px-3 py-1 rounded-full">Card <span id="current-card-num">1</span> / <span id="total-card-num">10</span></span>
+                    <button class="text-gray-400 hover:text-black transition-colors">
+                        <iconify-icon icon="lucide:rotate-ccw" width="18"></iconify-icon>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Flashcard Container -->
+            <div class="max-w-2xl mx-auto perspective-1000 h-[400px] md:h-[450px] relative group cursor-pointer" onclick="flipCard()">
+                <div id="flashcard-inner" class="relative w-full h-full text-center transition-all duration-500 transform-style-3d shadow-sm hover:shadow-md rounded-2xl">
+                    
+                    <!-- Front -->
+                    <div class="absolute w-full h-full backface-hidden bg-white border border-lime-200 rounded-2xl p-8 flex flex-col justify-center items-center">
+                        <span class="absolute top-6 left-6 text-[10px] uppercase tracking-widest text-gray-400 font-semibold" id="card-type">Multiple Choice</span>
+                        
+                        <div class="flex-grow flex items-center justify-center w-full">
+                            <h3 class="text-lg md:text-xl font-medium tracking-tight leading-relaxed text-gray-900" id="card-question">
+                                Loading question...
+                            </h3>
+                        </div>
+                        
+                        <div class="text-xs text-gray-400 flex items-center gap-2 mt-auto">
+                            <iconify-icon icon="lucide:mouse-pointer-click" width="14"></iconify-icon>
+                            Tap to reveal answer
+                        </div>
+                    </div>
+
+                    <!-- Back -->
+                    <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-gray-900 text-white rounded-2xl p-8 flex flex-col justify-between text-left">
+                         <span class="absolute top-6 left-6 text-[10px] uppercase tracking-widest text-gray-400 font-semibold">Answer & Explanation</span>
+                        
+                        <div class="mt-8 overflow-y-auto no-scrollbar">
+                            <h4 class="text-lg font-semibold text-white mb-3" id="card-answer">Answer Here</h4>
+                            <p class="text-sm text-gray-300 leading-relaxed mb-4" id="card-explanation">
+                                Explanation text goes here.
+                            </p>
+                            
+                            <!-- Context/Code Ref -->
+                            <div class="bg-gray-800 rounded-lg p-3 border border-gray-700">
+                                <span class="text-[10px] uppercase tracking-wider text-gray-500 block mb-1">Reference</span>
+                                <p class="text-xs text-lime-200 font-mono" id="card-reference">IPC Section 901.2</p>
+                            </div>
+                        </div>
+
+                        <!-- Actions (Prevent flip on click) -->
+                        <div class="grid grid-cols-2 gap-3 mt-6 pt-4 border-t border-gray-800" onclick="event.stopPropagation()">
+                            <button onclick="nextCard(false)" class="flex items-center justify-center gap-2 py-3 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm font-medium hover:bg-gray-700 transition">
+                                <iconify-icon icon="lucide:refresh-cw" width="16"></iconify-icon>
+                                Needs Review
+                            </button>
+                            <button onclick="nextCard(true)" class="flex items-center justify-center gap-2 py-3 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-200 transition border border-transparent">
+                                <iconify-icon icon="lucide:check" width="16"></iconify-icon>
+                                Got It
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="max-w-2xl mx-auto mt-6">
+                <p class="text-center text-xs text-gray-400">Keyboard: Space to flip, Left (Review), Right (Got it)</p>
+            </div>
+        </div>
+
+        <!-- SECTION 3: RESOURCES & STRATEGY -->
+        <div id="resources" class="tab-content">
+            <h1 class="text-2xl font-semibold tracking-tight mb-2">Resources & Strategy</h1>
+            <p class="text-gray-500 text-sm mb-8">Reference materials and exam day preparation guides.</p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Main Resources List -->
+                <div class="lg:col-span-2 space-y-4">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Reference Library</h3>
+                    
+                    <a href="#" class="block bg-white border border-lime-200 rounded-xl p-4 hover:border-gray-400 transition-colors group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 border border-gray-100 group-hover:bg-black group-hover:text-white transition-colors">
+                                <iconify-icon icon="lucide:file-text" width="20"></iconify-icon>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-900">Standard Plumbing Code Formulas</h4>
+                                <p class="text-xs text-gray-500">Essential math formulas for pipe sizing and offsets.</p>
+                            </div>
+                            <iconify-icon icon="lucide:download" width="16" class="ml-auto text-gray-400"></iconify-icon>
+                        </div>
+                    </a>
+
+                    <a href="#" class="block bg-white border border-lime-200 rounded-xl p-4 hover:border-gray-400 transition-colors group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 border border-gray-100 group-hover:bg-black group-hover:text-white transition-colors">
+                                <iconify-icon icon="lucide:alert-octagon" width="20"></iconify-icon>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-900">Common Exam Traps</h4>
+                                <p class="text-xs text-gray-500">List of tricky wording often found in Master exams.</p>
+                            </div>
+                            <iconify-icon icon="lucide:external-link" width="16" class="ml-auto text-gray-400"></iconify-icon>
+                        </div>
+                    </a>
+
+                    <a href="#" class="block bg-white border border-lime-200 rounded-xl p-4 hover:border-gray-400 transition-colors group">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-gray-50 flex items-center justify-center text-gray-600 border border-gray-100 group-hover:bg-black group-hover:text-white transition-colors">
+                                <iconify-icon icon="lucide:ruler" width="20"></iconify-icon>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-semibold text-gray-900">DFU Calculation Sheet</h4>
+                                <p class="text-xs text-gray-500">Worksheet for Drainage Fixture Unit values.</p>
+                            </div>
+                            <iconify-icon icon="lucide:download" width="16" class="ml-auto text-gray-400"></iconify-icon>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Strategy Sidebar -->
+                <div class="space-y-4">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-2">Exam Strategy</h3>
+                    
+                    <div class="bg-black text-white rounded-xl p-6">
+                        <div class="flex items-center gap-2 mb-3">
+                            <iconify-icon icon="lucide:clock" width="18" class="text-lime-200"></iconify-icon>
+                            <h4 class="font-semibold text-sm">Time Management</h4>
+                        </div>
+                        <p class="text-xs text-gray-300 leading-relaxed mb-4">
+                            You have approx 2-3 minutes per calculation question. Skip complex math problems initially and return to them after securing easy points on code questions.
+                        </p>
+                        <div class="w-full bg-gray-800 h-1 rounded-full overflow-hidden">
+                            <div class="bg-lime-200 h-1 w-2/3"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-lime-200 rounded-xl p-6">
+                        <h4 class="font-semibold text-sm mb-2">Final Week Checklist</h4>
+                        <ul class="space-y-2">
+                            <li class="flex items-center gap-2 text-xs text-gray-600">
+                                <iconify-icon icon="lucide:check-square" width="14" class="text-black"></iconify-icon> Review Gas Pipe Sizing
+                            </li>
+                            <li class="flex items-center gap-2 text-xs text-gray-600">
+                                <iconify-icon icon="lucide:check-square" width="14" class="text-black"></iconify-icon> Memorize Vent Distance Table
+                            </li>
+                            <li class="flex items-center gap-2 text-xs text-gray-600">
+                                <iconify-icon icon="lucide:square" width="14" class="text-gray-300"></iconify-icon> Isometrics Practice
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Simple Footer -->
+    <footer class="border-t border-lime-200 py-6 mt-auto bg-white">
+        <div class="max-w-5xl mx-auto px-4 text-center">
+            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Personal Study Tool &bull; No Data Collected</p>
+        </div>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // --- Data: Mock Questions ---
+        const questionBank = {
+            code: [
+                { type: "Code Interpretation", q: "What is the minimum size of a trap arm for a 2-inch floor drain?", a: "2 inches", exp: "Trap arms cannot be smaller than the fixture drain they serve. For a 2-inch floor drain, the minimum trap arm is 2 inches.", ref: "IPC Table 709.1" },
+                { type: "Venting", q: "What is the maximum distance from trap to vent for a 1-1/2 inch fixture drain?", a: "6 feet", exp: "According to standard code tables, a 1.5-inch pipe with a 1/4 inch per foot slope has a max trap-to-vent distance of 6 feet.", ref: "IPC Table 909.1" }
+            ],
+            math: [
+                { type: "Calculation", q: "A 4-inch pipe is installed with a slope of 1/8 inch per foot. What is the total fall in inches for a 60-foot run?", a: "7.5 inches", exp: "Formula: Total Fall = Run × Slope. <br> 60 ft × 0.125 (1/8) = 7.5 inches.", ref: "Plumbing Math Formulas" },
+                { type: "Pressure", q: "What is the pressure at the base of a 100-foot vertical column of water?", a: "43.3 psi", exp: "Formula: 0.433 psi per foot of head. <br> 100 ft × 0.433 = 43.3 psi.", ref: "Hydrostatics" }
+            ],
+            sanitation: [
+                { type: "Design Logic", q: "Why is an air gap preferred over a backflow preventer for a food prep sink?", a: "Absolute protection", exp: "An air gap provides a physical separation that cannot fail mechanically, unlike valves. It is the most secure method against back-siphonage.", ref: "IPC 608.15.1" }
+            ],
+            practical: [
+                { type: "Scenario", q: "A customer complains of sewer smell in a spare bathroom used rarely. What is the most likely simple cause?", a: "Dry Trap Seal", exp: "Water in the P-trap evaporates over time if not replenished. The seal breaks, allowing sewer gas to enter. Solution: Pour water down the drain.", ref: "Troubleshooting" }
+            ]
+        };
+
+        let currentSubject = 'code';
+        let currentCardIndex = 0;
+        let isFlipped = false;
+
+        // --- Navigation Functions ---
+        function switchTab(tabId) {
+            // Hide all
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => el.classList.remove('text-black', 'text-gray-500'));
+            
+            // Show target
+            document.getElementById(tabId).classList.add('active');
+            
+            // Update Nav State
+            if(tabId === 'dashboard') document.getElementById('nav-dash').classList.add('text-black');
+            else document.getElementById('nav-dash').classList.add('text-gray-500');
+            
+            if(tabId === 'study') document.getElementById('nav-study').classList.add('text-black');
+            else document.getElementById('nav-study').classList.add('text-gray-500');
+
+            if(tabId === 'resources') document.getElementById('nav-res').classList.add('text-black');
+            else document.getElementById('nav-res').classList.add('text-gray-500');
+        }
+
+        function openSubject(subject) {
+            currentSubject = subject;
+            currentCardIndex = 0;
+            
+            // Update UI titles based on subject
+            const titles = {
+                code: "Plumbing Code",
+                math: "Plumbing Arithmetic",
+                sanitation: "Sanitation & Design",
+                practical: "Practical Problems"
+            };
+            document.getElementById('study-topic-title').innerText = titles[subject];
+            
+            loadCard();
+            switchTab('study');
+        }
+
+        // --- Flashcard Functions ---
+        function loadCard() {
+            // Reset flip state
+            isFlipped = false;
+            document.getElementById('flashcard-inner').classList.remove('rotate-y-180');
+
+            const questions = questionBank[currentSubject];
+            // Cycle if index exceeds length (simple loop for demo)
+            const qData = questions[currentCardIndex % questions.length];
+            
+            document.getElementById('total-card-num').innerText = questions.length;
+            document.getElementById('current-card-num').innerText = (currentCardIndex % questions.length) + 1;
+
+            // Populate Content
+            document.getElementById('card-type').innerText = qData.type;
+            document.getElementById('card-question').innerHTML = qData.q;
+            
+            // Delay answer population slightly to prevent peeking during flip reset
+            setTimeout(() => {
+                document.getElementById('card-answer').innerText = qData.a;
+                document.getElementById('card-explanation').innerHTML = qData.exp;
+                document.getElementById('card-reference').innerText = qData.ref;
+            }, 200);
+        }
+
+        function flipCard() {
+            const card = document.getElementById('flashcard-inner');
+            if (isFlipped) {
+                card.classList.remove('rotate-y-180');
+                isFlipped = false;
+            } else {
+                card.classList.add('rotate-y-180');
+                isFlipped = true;
+            }
+        }
+
+        function nextCard(success) {
+            // In a real app, we would save 'success' to local storage here
+            currentCardIndex++;
+            loadCard();
+        }
+
+        // --- Keyboard Shortcuts ---
+        document.addEventListener('keydown', (e) => {
+            if (!document.getElementById('study').classList.contains('active')) return;
+            
+            if (e.code === 'Space') {
+                e.preventDefault(); // prevent scroll
+                flipCard();
+            } else if (e.code === 'ArrowRight' && isFlipped) {
+                nextCard(true);
+            } else if (e.code === 'ArrowLeft' && isFlipped) {
+                nextCard(false);
+            }
+        });
+
+    </script>
+</body>
+</html>
