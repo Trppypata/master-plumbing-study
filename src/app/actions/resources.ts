@@ -113,6 +113,6 @@ export async function getCategories(): Promise<string[]> {
     .select('category')
     .order('category');
 
-  const categories = [...new Set(data?.map(r => r.category) || [])];
+  const categories = Array.from(new Set(data?.map(r => r.category) || []));
   return categories.length > 0 ? categories : ['general'];
 }

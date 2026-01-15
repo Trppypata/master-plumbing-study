@@ -90,8 +90,10 @@ export async function uploadDocument(
       const buffer = Buffer.from(arrayBuffer);
       
       try {
-        const pdfParse = await import('pdf-parse');
-        const pdfData = await pdfParse.default(buffer);
+        // Use require for pdf-parse as it doesn't have proper ESM exports
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pdfParse = require('pdf-parse');
+        const pdfData = await pdfParse(buffer);
         textContent = pdfData.text;
       } catch (pdfError) {
         console.error('PDF parsing error:', pdfError);

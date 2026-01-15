@@ -93,6 +93,6 @@ export interface DashboardStats {
   subjectStats: SubjectStats[];
 }
 
-export interface FlashcardWithProgress extends Flashcard {
+export interface FlashcardWithProgress extends Omit<Flashcard, 'progress'> {
   progress: Progress | null;
 }
