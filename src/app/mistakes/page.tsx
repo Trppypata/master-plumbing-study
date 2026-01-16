@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { resolveMistake } from '@/app/actions/exam';
 import { Brain, CheckCircle2, AlertTriangle, ArrowRight, RotateCcw, Calendar, BookOpen } from 'lucide-react';
 
 interface Mistake {
@@ -125,13 +126,21 @@ export default function MistakesPage() {
                 
                 {/* Actions */}
                 <div className="flex flex-col justify-center min-w-[140px] border-t md:border-t-0 md:border-l border-gray-100 pt-4 md:pt-0 md:pl-6">
-                    <button className="btn btn-primary w-full justify-between group/btn text-sm py-2.5">
+                    <Link href="/exam/session?mode=mistakes" className="btn btn-primary w-full justify-between group/btn text-sm py-2.5">
                         <span>Review</span>
                         <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                    </button>
-                    <button className="text-[10px] text-center text-gray-400 mt-3 hover:text-red-500 transition-colors">
+                    </Link>
+                    <button 
+                        onClick={async () => {
+                            if (!confirm('Mark this mistake as resolved?')) return;
+                            await resolveMistake(m.id);
+                            window.location.reload(); // Simple reload to refresh list
+                        }}
+                        className="text-[10px] text-center text-gray-400 mt-3 hover:text-red-500 transition-colors"
+                    >
                         Mark Resolved
                     </button>
+                    {/* Add resolveMistake import */}
                 </div>
               </div>
             </div>

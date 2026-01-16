@@ -100,3 +100,63 @@ export async function getExamQuestions(count: number) {
 
   return shuffled;
 }
+
+export async function getMistakesQuestions() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('mistakes_log')
+    .select(`
+      flashcard_id,
+      question_data
+    `)
+    .eq('user_id', user.id)
+    .eq('is_resolved', false);
+
+  if (error) throw error;
+
+  // Transform to ExamQuestion format
+  // We prioritize the data stored in the log to ensure we ask the exact same version they missed,
+  // but in a real app you might want to fetch the live card to get updates.
+  // Here we'll use the stored question_data which should be sufficient.
+  
+  return data.map((m: any) => ({
+      ...m.question_data,
+      id: m.flashcard_id // Ensure ID matches for potential re-logging
+  }));
+}
+
+export async function resolveMistake(flashcardId: string) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('mistakes_log')
+    .update({ is_resolved: true })
+    .eq('user_id', user.id)
+    .eq('flashcard_id', flashcardId);
+
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getExamHistory() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('exam_results')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data;
+}

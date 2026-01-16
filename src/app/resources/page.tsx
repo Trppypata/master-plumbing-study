@@ -29,14 +29,22 @@ export default function ResourcesPage() {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-8">
-        <Link href="/" className="text-xs flex items-center gap-1 mb-2" style={{ color: 'var(--color-text-secondary)' }}>
-          ← Back to Dashboard
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+           <Link href="/" className="text-xs flex items-center gap-1 mb-2" style={{ color: 'var(--color-text-secondary)' }}>
+             ← Back to Dashboard
+           </Link>
+           <h1 className="text-2xl font-semibold tracking-tight mb-2">Resources & Strategy</h1>
+           <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
+             Upload study materials and reference guides to power your AI tutor.
+           </p>
+        </div>
+        <Link 
+          href="/resources/cards" 
+          className="btn btn-secondary flex items-center gap-2 text-sm"
+        >
+          🗂 Manage Flashcards
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight mb-2">Resources & Strategy</h1>
-        <p className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>
-          Upload study materials and reference guides to power your AI tutor.
-        </p>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">

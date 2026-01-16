@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { saveExamResult, logMistakes, getExamQuestions } from '@/app/actions/exam';
+import { saveExamResult, logMistakes, getExamQuestions, getMistakesQuestions } from '@/app/actions/exam';
 
 interface ExamQuestion {
   id: string;
@@ -18,6 +18,7 @@ export default function ExamSessionPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const count = parseInt(searchParams.get('count') || '50');
+    const mode = searchParams.get('mode'); // 'normal' | 'mistakes'
 
     const [questions, setQuestions] = useState<ExamQuestion[]>([]);
     const [answers, setAnswers] = useState<Record<number, number>>({}); // index -> choiceIndex
@@ -32,9 +33,16 @@ export default function ExamSessionPage() {
     useEffect(() => {
         async function loadQuestions() {
             try {
-                const data = await getExamQuestions(count);
+                let data;
+                if (mode === 'mistakes') {
+                    data = await getMistakesQuestions();
+                } else {
+                    data = await getExamQuestions(count);
+                }
+                
                 setQuestions(data);
-                setTimeLeft(data.length * 90); // 1.5 mins per question based on actual count
+                // 1.5 mins per question, but at least 5 mins for small sets
+                setTimeLeft(Math.max(300, data.length * 90)); 
             } catch (error) {
                 console.error('Error loading exam questions:', error);
             } finally {
@@ -42,7 +50,7 @@ export default function ExamSessionPage() {
             }
         }
         loadQuestions();
-    }, [count]);
+    }, [count, mode]);
 
     // Timer
     useEffect(() => {

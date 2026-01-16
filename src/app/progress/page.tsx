@@ -52,12 +52,17 @@ export default function ProgressPage() {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-8">
-        <Link href="/" className="text-xs flex items-center gap-1 mb-2 text-gray-500 hover:text-gray-700">
-          ← Back to Dashboard
+      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+           <Link href="/" className="text-xs flex items-center gap-1 mb-2 text-gray-500 hover:text-gray-700">
+             ← Back to Dashboard
+           </Link>
+           <h1 className="text-2xl font-semibold tracking-tight mb-2">Progress Dashboard</h1>
+           <p className="text-sm text-gray-500">Track your study progress and exam readiness.</p>
+        </div>
+        <Link href="/history" className="btn btn-secondary flex items-center gap-2 text-sm">
+           <Clock className="w-4 h-4" /> Exam History
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight mb-2">Progress Dashboard</h1>
-        <p className="text-sm text-gray-500">Track your study progress and exam readiness.</p>
       </div>
 
       {/* Stats Grid */}
