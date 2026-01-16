@@ -3,9 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { saveExamResult, logMistakes } from '@/app/actions/exam';
+import { saveExamResult, logMistakes, getExamQuestions } from '@/app/actions/exam';
 
-// Mock Data Types
 interface ExamQuestion {
   id: string;
   text: string;
@@ -14,15 +13,6 @@ interface ExamQuestion {
   explanation: string;
   subject: string;
 }
-
-// Mock Questions Pool (In a real app, fetch from Supabase)
-const QUESTION_POOL: ExamQuestion[] = [
-  { id: '1', subject: 'Code', text: 'What is the minimum size of a trap arm for a 2-inch floor drain?', choices: ['1.5 inches', '2 inches', '3 inches', '4 inches'], correctIndex: 1, explanation: 'Trap arms cannot be smaller than the fixture drain.' },
-  { id: '2', subject: 'Math', text: 'A 4-inch pipe with 1/8" slope runs 60ft. What is the total fall?', choices: ['5 inches', '6 inches', '7.5 inches', '8 inches'], correctIndex: 2, explanation: '60 * 0.125 = 7.5' },
-  { id: '3', subject: 'Sanitation', text: 'What prevents sewer gas from entering via a fixture?', choices: ['Backwater valve', 'P-trap', 'Cleanout', 'Vacuum breaker'], correctIndex: 1, explanation: 'A P-trap holds a water seal.' },
-  { id: '4', subject: 'Practical', text: "Water hammer is caused by?", choices: ["High pressure", "Quick-closing valves", "Undersized pipes", "Leaks"], correctIndex: 1, explanation: "Quick closing valves stop fast-moving water suddenly." },
-  { id: '5', subject: 'Code', text: "Max distance from trap to vent for 2-inch pipe?", choices: ["5 ft", "6 ft", "8 ft", "10 ft"], correctIndex: 2, explanation: "IPC Table 909.1" },
-];
 
 export default function ExamSessionPage() {
     const searchParams = useSearchParams();
@@ -33,25 +23,30 @@ export default function ExamSessionPage() {
     const [answers, setAnswers] = useState<Record<number, number>>({}); // index -> choiceIndex
     const [marked, setMarked] = useState<Record<number, boolean>>({});
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [timeLeft, setTimeLeft] = useState(count * 90); // 1.5 mins per question
+    const [timeLeft, setTimeLeft] = useState(0);
     const [isFinished, setIsFinished] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     // Initialize Exam
     useEffect(() => {
-        // Shuffle and slice pool
-        const shuffled = [...QUESTION_POOL].sort(() => 0.5 - Math.random());
-        // For demo, we just cycle the pool if count > pool size
-        const examQuestions = [];
-        for(let i=0; i<count; i++) {
-             examQuestions.push(shuffled[i % shuffled.length]);
+        async function loadQuestions() {
+            try {
+                const data = await getExamQuestions(count);
+                setQuestions(data);
+                setTimeLeft(data.length * 90); // 1.5 mins per question based on actual count
+            } catch (error) {
+                console.error('Error loading exam questions:', error);
+            } finally {
+                setLoading(false);
+            }
         }
-        setQuestions(examQuestions);
+        loadQuestions();
     }, [count]);
 
     // Timer
     useEffect(() => {
-        if(isFinished) return;
+        if(isFinished || loading) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if(prev <= 1) {
@@ -62,9 +57,10 @@ export default function ExamSessionPage() {
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [isFinished]);
+    }, [isFinished, loading]);
 
     const finishExam = async () => {
+        if (isFinished) return;
         setIsFinished(true);
         setIsSaving(true);
         
@@ -102,7 +98,7 @@ export default function ExamSessionPage() {
                 score: userScore,
                 total_questions: questions.length,
                 correct_answers: correctCount,
-                duration_seconds: (count * 90) - timeLeft,
+                duration_seconds: (questions.length * 90) - timeLeft,
                 subjects_breakdown: subjectStats
             });
         } catch (err) {
@@ -127,46 +123,60 @@ export default function ExamSessionPage() {
         return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
     };
 
-    // Calculate Score
-    const calculateScore = () => {
-        let correct = 0;
-        questions.forEach((q, idx) => {
-            if(answers[idx] === q.correctIndex) correct++;
-        });
-        return Math.round((correct / questions.length) * 100);
-    };
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="animate-pulse text-forest font-medium">Randomizing Exam Questions...</div>
+            </div>
+        );
+    }
 
-    if (questions.length === 0) return <div className="p-8 text-center">Loading Exam...</div>;
+    if (questions.length === 0) {
+        return (
+            <div className="text-center py-20 animate-fade-in">
+                <h1 className="text-2xl font-semibold mb-4 text-gray-900">No Questions Found</h1>
+                <p className="text-gray-500 mb-8">Unable to generate an exam. Please ensure you have flashcards in your database.</p>
+                <Link href="/exam" className="px-6 py-2 bg-forest text-white rounded-lg">← Back to Setup</Link>
+            </div>
+        );
+    }
 
     if (isFinished) {
-        const score = calculateScore();
+        let correctCount = 0;
+        questions.forEach((q, idx) => {
+            if(answers[idx] === q.correctIndex) correctCount++;
+        });
+        const score = Math.round((correctCount / questions.length) * 100);
+        
         return (
-            <div className="max-w-2xl mx-auto animate-fade-in text-center p-8">
-                <h1 className="text-3xl font-bold mb-2">Exam Results</h1>
-                <p className="text-gray-500 mb-8">Session Complete</p>
-                {isSaving && <p className="text-blue-500 animate-pulse mb-4">Saving results...</p>}
+            <div className="max-w-2xl mx-auto animate-fade-in text-center p-8 bg-white border border-sand rounded-2xl shadow-sm my-10">
+                <h1 className="text-3xl font-black mb-2 text-gray-900">Exam Results</h1>
+                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-8">Practice Simulation Complete</p>
+                
+                {isSaving && <div className="text-forest text-xs font-bold animate-pulse mb-6">SAVING RESULTS TO PROFILE...</div>}
 
-                <div className="card p-8 mb-8 border-[var(--color-forest)] border-2">
-                    <div className="text-6xl font-bold text-[var(--color-forest)] mb-2">{score}%</div>
-                    <p className={`text-lg font-medium ${score >= 70 ? 'text-green-600' : 'text-red-500'}`}>
+                <div className="mb-10 p-10 bg-gradient-to-br from-forest/5 to-white border-2 border-forest rounded-2xl shadow-inner relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-forest opacity-5 rounded-full -mr-16 -mt-16"></div>
+                    <div className="text-8xl font-black text-forest mb-4 tracking-tighter">{score}%</div>
+                    <p className={`text-xl font-black tracking-tight ${score >= 70 ? 'text-forest' : 'text-red-600'}`}>
                         {score >= 70 ? 'PASSING SCORE' : 'NEEDS IMPROVEMENT'}
                     </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                     <div className="card p-4 bg-[var(--color-cream)]">
-                        <div className="text-gray-500 text-xs uppercase">Questions</div>
-                        <div className="text-xl font-bold">{questions.length}</div>
+                <div className="grid grid-cols-2 gap-4 mb-10">
+                     <div className="bg-cream border border-sand p-6 rounded-2xl">
+                        <div className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Questions Answered</div>
+                        <div className="text-2xl font-bold text-gray-900">{Object.keys(answers).length} / {questions.length}</div>
                      </div>
-                     <div className="card p-4 bg-[var(--color-cream)]">
-                        <div className="text-gray-500 text-xs uppercase">Time Taken</div>
-                        <div className="text-xl font-bold">{formatTime((count * 90) - timeLeft)}</div>
+                     <div className="bg-cream border border-sand p-6 rounded-2xl">
+                        <div className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Time Elapsed</div>
+                        <div className="text-2xl font-bold text-gray-900">{formatTime((questions.length * 90) - timeLeft)}</div>
                      </div>
                 </div>
 
-                <div className="flex gap-4 justify-center">
-                    <Link href="/exam" className="btn btn-secondary">Callback to Setup</Link>
-                    <Link href="/" className="btn btn-primary">Return to Dashboard</Link>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Link href="/exam" className="px-8 py-4 bg-white border border-sand text-gray-700 font-bold rounded-xl hover:bg-cream transition">New Exam</Link>
+                    <Link href="/" className="px-8 py-4 bg-forest text-white font-bold rounded-xl shadow-lg hover:bg-forest/90 transition shadow-forest/20">Go to Dashboard</Link>
                 </div>
             </div>
         );
@@ -175,63 +185,71 @@ export default function ExamSessionPage() {
     const currentQ = questions[currentIndex];
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)]">
+        <div className="flex flex-col h-[calc(100vh-140px)] animate-fade-in">
             {/* Top Bar */}
-            <div className="flex justify-between items-center mb-6 bg-[var(--color-forest)] text-white p-4 rounded-xl shadow-lg">
-                <div className="font-mono text-xl font-bold tracking-widest">
-                    {formatTime(timeLeft)}
+            <div className="flex justify-between items-center mb-6 bg-gray-900 text-white p-5 rounded-2xl shadow-xl border border-gray-800">
+                <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                    <div className="font-mono text-2xl font-black tracking-widest">
+                        {formatTime(timeLeft)}
+                    </div>
                 </div>
-                <div className="text-sm font-medium opacity-90">
-                    Question {currentIndex + 1} of {questions.length}
+                <div className="hidden sm:block text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
+                    MASTER PLUMBER EXAM SIMULATOR
                 </div>
-                <button 
-                    onClick={finishExam}
-                    className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition"
-                >
-                    Submit Exam
-                </button>
+                <div className="flex items-center gap-4">
+                    <div className="text-xs font-bold opacity-60">
+                        Q: {currentIndex + 1} / {questions.length}
+                    </div>
+                    <button 
+                        onClick={finishExam}
+                        className="text-[10px] font-black uppercase tracking-widest bg-forest/20 hover:bg-forest/40 text-forest border border-forest/30 px-4 py-2 rounded-lg transition"
+                    >
+                        Submit
+                    </button>
+                </div>
             </div>
 
             <div className="flex gap-6 flex-grow overflow-hidden">
                 {/* Main Question Area */}
                 <div className="flex-grow flex flex-col min-w-0">
-                    <div className="card flex-grow flex flex-col p-8 overflow-y-auto">
-                         <div className="flex justify-between items-start mb-6">
-                            <span className="text-xs uppercase tracking-wider text-[var(--color-text-muted)] bg-gray-50 px-2 py-1 rounded border border-gray-100">
+                    <div className="bg-white border border-sand rounded-3xl flex-grow flex flex-col p-8 md:p-12 overflow-y-auto shadow-sm relative">
+                         <div className="flex justify-between items-start mb-10">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-forest bg-forest/5 px-3 py-1.5 rounded-full border border-forest/10">
                                 {currentQ.subject}
                             </span>
                             <button 
                                 onClick={toggleMark}
-                                className={`flex items-center gap-1 text-xs font-medium transition-colors ${marked[currentIndex] ? 'text-orange-500' : 'text-gray-400 hover:text-gray-600'}`}
+                                className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-colors ${marked[currentIndex] ? 'text-orange-500' : 'text-gray-300 hover:text-gray-500'}`}
                             >
-                                <span className="text-lg">{marked[currentIndex] ? '★' : '☆'}</span>
-                                {marked[currentIndex] ? 'Marked for Review' : 'Mark Question'}
+                                <span className="text-xl leading-none">{marked[currentIndex] ? '★' : '☆'}</span>
+                                {marked[currentIndex] ? 'Marked' : 'Mark'}
                             </button>
                          </div>
 
-                         <h2 className="text-xl md:text-2xl font-medium leading-relaxed mb-8 flex-grow">
+                         <h2 className="text-xl md:text-3xl font-bold tracking-tight text-gray-900 leading-[1.4] mb-12 flex-grow">
                              {currentQ.text}
                          </h2>
 
-                         <div className="space-y-3">
+                         <div className="space-y-4 max-w-2xl">
                              {currentQ.choices.map((choice, idx) => (
                                  <button
                                     key={idx}
                                     onClick={() => handleAnswer(idx)}
-                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-4 group
+                                    className={`w-full text-left p-5 rounded-2xl border-2 transition-all flex items-center gap-5 group
                                         ${answers[currentIndex] === idx 
-                                            ? 'border-[var(--color-forest)] bg-[#F0FDF4]' 
-                                            : 'border-transparent bg-gray-50 hover:bg-gray-100 hover:border-gray-200'
+                                            ? 'border-forest bg-[#F0FDF4] shadow-md shadow-forest/5' 
+                                            : 'border-transparent bg-gray-50 hover:bg-white hover:border-sand'
                                         }`}
                                  >
-                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors
+                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black border-2 transition-all
                                          ${answers[currentIndex] === idx
-                                             ? 'bg-[var(--color-forest)] text-white border-[var(--color-forest)]'
-                                             : 'bg-white text-gray-400 border-gray-200 group-hover:border-gray-300'
+                                             ? 'bg-forest text-white border-forest rotate-6'
+                                             : 'bg-white text-gray-400 border-sand group-hover:border-forest/30'
                                          }`}>
                                          {String.fromCharCode(65 + idx)}
                                      </div>
-                                     <span className={answers[currentIndex] === idx ? 'font-medium text-[var(--color-text)]' : 'text-gray-600'}>
+                                     <span className={`text-base font-medium transition-colors ${answers[currentIndex] === idx ? 'text-gray-900' : 'text-gray-600'}`}>
                                          {choice}
                                      </span>
                                  </button>
@@ -240,46 +258,56 @@ export default function ExamSessionPage() {
                     </div>
 
                     {/* Navigation Controls */}
-                    <div className="flex justify-between mt-6">
+                    <div className="flex justify-between items-center mt-6 px-2">
                         <button 
                             onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                             disabled={currentIndex === 0}
-                            className="btn btn-secondary w-32 disabled:opacity-50"
+                            className="px-8 py-3 bg-white border border-sand text-gray-400 font-bold rounded-2xl hover:bg-cream hover:text-gray-700 disabled:opacity-30 disabled:hover:bg-white transition flex items-center gap-2"
                         >
-                            ← Previous
+                            <span>←</span> PREVIOUS
                         </button>
+                        
+                        <div className="flex gap-2">
+                            {questions.map((_, idx) => (
+                                <div 
+                                    key={idx} 
+                                    className={`w-1.5 h-1.5 rounded-full transition-all ${currentIndex === idx ? 'w-6 bg-forest' : 'bg-gray-200'}`}
+                                />
+                            )).slice(Math.max(0, currentIndex - 2), Math.min(questions.length, currentIndex + 3))}
+                        </div>
+
                         <button 
                             onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
                             disabled={currentIndex === questions.length - 1}
-                            className="btn btn-primary w-32 disabled:opacity-50"
+                            className="px-8 py-3 bg-white border border-sand text-gray-700 font-bold rounded-2xl hover:bg-cream disabled:opacity-30 transition flex items-center gap-2"
                         >
-                            Next →
+                            NEXT <span>→</span>
                         </button>
                     </div>
                 </div>
 
-                {/* Sidebar Grid (Desktop) */}
-                <div className="hidden md:block w-64 card p-4 overflow-y-auto">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider mb-4 text-gray-400">Question Map</h3>
-                    <div className="grid grid-cols-4 gap-2">
+                {/* Sidebar Grid (Desktop Only) */}
+                <div className="hidden lg:block w-72 bg-white border border-sand rounded-3xl p-6 overflow-y-auto shadow-sm">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] mb-6 text-gray-400">Board Map</h3>
+                    <div className="grid grid-cols-4 gap-3">
                         {questions.map((_, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => setCurrentIndex(idx)}
-                                className={`aspect-square rounded flex items-center justify-center text-xs font-medium transition-all relative
+                                className={`aspect-square rounded-xl flex items-center justify-center text-[11px] font-black transition-all relative border-2
                                     ${currentIndex === idx 
-                                        ? 'ring-2 ring-black ring-offset-1 z-10' 
-                                        : 'hover:bg-gray-100'
+                                        ? 'border-gray-900 scale-110 z-10 shadow-lg' 
+                                        : 'border-transparent'
                                     }
                                     ${answers[idx] !== undefined 
-                                        ? 'bg-[var(--color-forest)] text-white' 
-                                        : 'bg-gray-100 text-gray-500'
+                                        ? 'bg-forest text-white' 
+                                        : 'bg-gray-50 text-gray-400'
                                     }
                                 `}
                             >
                                 {idx + 1}
                                 {marked[idx] && (
-                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border border-white"></span>
+                                    <span className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-orange-500 rounded-full border-2 border-white"></span>
                                 )}
                             </button>
                         ))}

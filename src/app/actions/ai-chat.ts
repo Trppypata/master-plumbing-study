@@ -6,16 +6,6 @@ import { isEmbeddingsConfigured } from '@/lib/embeddings';
 // AI Chat Server Action with RAG Integration
 // Retrieves relevant context from uploaded documents before answering
 
-const DEMO_RESPONSES: Record<string, string> = {
-  'vent': 'Vents prevent siphonage and back-pressure in drain systems. They allow air to enter behind flowing water, maintaining proper trap seal depths and enabling smooth drainage.',
-  'trap': 'A trap (like a P-trap) holds 2-4 inches of water to create a seal that prevents sewer gases from entering the building. Every fixture needs one!',
-  'fall': 'Pipe fall (or slope) is calculated as: Fall = Length × Slope. For example, a 40ft pipe at 1/4" per foot = 40 × 0.25 = 10 inches of fall.',
-  'slope': 'Standard drainage slope is 1/4" per foot for pipes 3" or smaller, and 1/8" per foot for pipes over 3". This ensures proper flow without solids settling.',
-  'fixture unit': 'Drainage Fixture Units (DFU) measure the probable discharge from fixtures. A lavatory = 1 DFU, toilet = 4 DFU. Used to size drain and vent pipes.',
-  'backflow': 'Backflow is the unwanted reversal of water flow. Prevention methods include: air gaps (most reliable), reduced pressure zones, double check valves, and vacuum breakers.',
-  'default': 'I can help with plumbing questions about venting, traps, pipe sizing, slope calculations, fixture units, and code requirements. What would you like to know?'
-};
-
 export interface AIResponse {
   response: string;
   isDemo: boolean;
@@ -32,18 +22,10 @@ export async function getAIResponse(message: string): Promise<AIResponse> {
   const isDemoMode = !geminiKey && !openaiKey;
 
   if (isDemoMode) {
-    // Find best matching demo response
-    const lowerMessage = message.toLowerCase();
-    let response = DEMO_RESPONSES['default'];
-    
-    for (const [keyword, answer] of Object.entries(DEMO_RESPONSES)) {
-      if (lowerMessage.includes(keyword)) {
-        response = answer;
-        break;
-      }
-    }
-    
-    return { response, isDemo: true };
+    return { 
+      response: 'AI features are currently unavailable. Please configure GEMINI_API_KEY or OPENAI_API_KEY in your environment to enable the AI tutor.', 
+      isDemo: true 
+    };
   }
 
   // Try RAG retrieval if configured

@@ -1,5 +1,5 @@
 // Data service for managing flashcards and progress with Supabase
-// Falls back to localStorage when Supabase is not configured
+// Mockup data and localStorage fallbacks removed
 
 import { supabase, isSupabaseConfigured } from './supabase';
 import { 
@@ -18,33 +18,28 @@ import { calculateNextReview, calculateExamReadiness } from './spaced-repetition
 // ============================================
 
 export async function getSubjects(): Promise<Subject[]> {
-  if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('*')
-      .order('display_order');
-    
-    if (error) throw error;
-    return data || [];
-  }
+  if (!isSupabaseConfigured()) return [];
+
+  const { data, error } = await supabase
+    .from('subjects')
+    .select('*')
+    .order('display_order');
   
-  // Fallback to demo data
-  return getDemoSubjects();
+  if (error) throw error;
+  return data || [];
 }
 
 export async function getSubjectBySlug(slug: string): Promise<Subject | null> {
-  if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
-      .from('subjects')
-      .select('*')
-      .eq('slug', slug)
-      .single();
-    
-    if (error) return null;
-    return data;
-  }
+  if (!isSupabaseConfigured()) return null;
+
+  const { data, error } = await supabase
+    .from('subjects')
+    .select('*')
+    .eq('slug', slug)
+    .single();
   
-  return getDemoSubjects().find(s => s.slug === slug) || null;
+  if (error) return null;
+  return data;
 }
 
 // ============================================
@@ -52,39 +47,30 @@ export async function getSubjectBySlug(slug: string): Promise<Subject | null> {
 // ============================================
 
 export async function getFlashcardsBySubject(subjectSlug: string): Promise<FlashcardWithProgress[]> {
-  if (isSupabaseConfigured()) {
-    const { data: subject } = await supabase
-      .from('subjects')
-      .select('id')
-      .eq('slug', subjectSlug)
-      .single();
-    
-    if (!subject) return [];
+  if (!isSupabaseConfigured()) return [];
 
-    const { data: flashcards, error } = await supabase
-      .from('flashcards')
-      .select(`
-        *,
-        topic:topics!inner(*, subject:subjects!inner(*)),
-        progress(*)
-      `)
-      .eq('topic.subject.slug', subjectSlug);
-    
-    if (error) throw error;
-    
-    return (flashcards || []).map(card => ({
-      ...card,
-      progress: card.progress?.[0] || null,
-    }));
-  }
+  const { data: subject } = await supabase
+    .from('subjects')
+    .select('id')
+    .eq('slug', subjectSlug)
+    .single();
   
-  // Fallback to localStorage progress
-  const flashcards = getDemoFlashcards(subjectSlug);
-  const progress = getLocalProgress();
+  if (!subject) return [];
+
+  const { data: flashcards, error } = await supabase
+    .from('flashcards')
+    .select(`
+      *,
+      topic:topics!inner(*, subject:subjects!inner(*)),
+      progress(*)
+    `)
+    .eq('topic.subject.slug', subjectSlug);
   
-  return flashcards.map(card => ({
+  if (error) throw error;
+  
+  return (flashcards || []).map(card => ({
     ...card,
-    progress: progress[card.id] || null,
+    progress: card.progress?.[0] || null,
   }));
 }
 
@@ -96,6 +82,8 @@ export async function updateProgress(
   flashcardId: string, 
   wasCorrect: boolean
 ): Promise<Progress | null> {
+  if (!isSupabaseConfigured()) return null;
+
   const existingProgress = await getProgressByFlashcard(flashcardId);
   const { status, nextReviewAt } = calculateNextReview(existingProgress, wasCorrect);
   
@@ -109,39 +97,26 @@ export async function updateProgress(
     updated_at: new Date().toISOString(),
   };
 
-  if (isSupabaseConfigured()) {
-    const { data, error } = await supabase
-      .from('progress')
-      .upsert(progressData, { onConflict: 'flashcard_id' })
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
+  const { data, error } = await supabase
+    .from('progress')
+    .upsert(progressData, { onConflict: 'flashcard_id' })
+    .select()
+    .single();
   
-  // Fallback to localStorage
-  saveLocalProgress(flashcardId, {
-    id: existingProgress?.id || `local-${flashcardId}`,
-    ...progressData,
-    created_at: existingProgress?.created_at || new Date().toISOString(),
-  } as Progress);
-  
-  return getLocalProgress()[flashcardId];
+  if (error) throw error;
+  return data;
 }
 
 async function getProgressByFlashcard(flashcardId: string): Promise<Progress | null> {
-  if (isSupabaseConfigured()) {
-    const { data } = await supabase
-      .from('progress')
-      .select('*')
-      .eq('flashcard_id', flashcardId)
-      .single();
-    
-    return data || null;
-  }
+  if (!isSupabaseConfigured()) return null;
+
+  const { data } = await supabase
+    .from('progress')
+    .select('*')
+    .eq('flashcard_id', flashcardId)
+    .single();
   
-  return getLocalProgress()[flashcardId] || null;
+  return data || null;
 }
 
 // ============================================
@@ -173,7 +148,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     }
   }
   
-  const cardsToday = getCardsReviewedToday();
+  const cardsToday = await getCardsReviewedToday();
   const examReadiness = calculateExamReadiness(totalCards, totalMastered, totalLearning);
   
   return {
@@ -206,176 +181,24 @@ function calculateSubjectStats(subject: Subject, flashcards: FlashcardWithProgre
 }
 
 // ============================================
-// LOCAL STORAGE HELPERS
+// STATISTICS HELPERS
 // ============================================
 
-const PROGRESS_KEY = 'plumbing-study-progress';
-const TODAY_CARDS_KEY = 'plumbing-study-today';
+async function getCardsReviewedToday(): Promise<number> {
+  if (!isSupabaseConfigured()) return 0;
 
-function getLocalProgress(): Record<string, Progress> {
-  if (typeof window === 'undefined') return {};
-  const stored = localStorage.getItem(PROGRESS_KEY);
-  return stored ? JSON.parse(stored) : {};
-}
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-function saveLocalProgress(flashcardId: string, progress: Progress): void {
-  if (typeof window === 'undefined') return;
-  const all = getLocalProgress();
-  all[flashcardId] = progress;
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify(all));
-  incrementTodayCards();
-}
+  const { count, error } = await supabase
+    .from('study_history')
+    .select('*', { count: 'exact', head: true })
+    .gte('created_at', today.toISOString());
 
-function getCardsReviewedToday(): number {
-  if (typeof window === 'undefined') return 0;
-  const stored = localStorage.getItem(TODAY_CARDS_KEY);
-  if (!stored) return 0;
-  
-  const { date, count } = JSON.parse(stored);
-  const today = new Date().toDateString();
-  
-  return date === today ? count : 0;
-}
+  if (error) {
+    console.error('Error fetching today\'s stats:', error);
+    return 0;
+  }
 
-function incrementTodayCards(): void {
-  if (typeof window === 'undefined') return;
-  const today = new Date().toDateString();
-  const current = getCardsReviewedToday();
-  
-  localStorage.setItem(TODAY_CARDS_KEY, JSON.stringify({
-    date: today,
-    count: current + 1,
-  }));
-}
-
-export function resetProgress(): void {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(PROGRESS_KEY);
-  localStorage.removeItem(TODAY_CARDS_KEY);
-}
-
-// ============================================
-// DEMO DATA
-// ============================================
-
-function getDemoSubjects(): Subject[] {
-  return [
-    {
-      id: '1',
-      name: 'Plumbing Code',
-      slug: 'plumbing-code',
-      description: 'Code interpretation, venting, drainage, traps, and materials',
-      icon: '📜',
-      color: '#3b82f6',
-      display_order: 1,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      name: 'Plumbing Arithmetic',
-      slug: 'plumbing-arithmetic',
-      description: 'Pipe sizing, slopes, pressure loss, fixture units, and conversions',
-      icon: '🔢',
-      color: '#10b981',
-      display_order: 2,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      name: 'Sanitation & Design',
-      slug: 'sanitation-design',
-      description: 'System layout, potable water safety, and wastewater concepts',
-      icon: '🏗️',
-      color: '#8b5cf6',
-      display_order: 3,
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: '4',
-      name: 'Practical Problems',
-      slug: 'practical-problems',
-      description: 'Troubleshooting scenarios and job-site decision questions',
-      icon: '🔧',
-      color: '#f59e0b',
-      display_order: 4,
-      created_at: new Date().toISOString(),
-    },
-  ];
-}
-
-function getDemoFlashcards(subjectSlug: string): Flashcard[] {
-  // This would be replaced with actual data from Supabase
-  // For now, returns sample cards per subject
-  const allCards: Record<string, Flashcard[]> = {
-    'plumbing-code': [
-      {
-        id: 'pc-1',
-        topic_id: '1',
-        type: 'recall',
-        front_content: 'What is the minimum trap seal depth required for floor drains?',
-        back_content: '2 inches (50mm)',
-        explanation: 'A 2-inch trap seal prevents sewer gases from entering the building.',
-        code_reference: 'IPC Section 1002.4',
-        difficulty: 1,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: 'pc-2',
-        topic_id: '1',
-        type: 'multiple_choice',
-        front_content: 'What is the maximum distance a P-trap can be from the fixture?',
-        back_content: '24 inches (610mm)',
-        choices: [
-          { text: '12 inches', isCorrect: false },
-          { text: '24 inches', isCorrect: true },
-          { text: '36 inches', isCorrect: false },
-          { text: '48 inches', isCorrect: false },
-        ],
-        difficulty: 2,
-        created_at: new Date().toISOString(),
-      },
-    ],
-    'plumbing-arithmetic': [
-      {
-        id: 'pa-1',
-        topic_id: '2',
-        type: 'calculation',
-        front_content: 'Calculate the total fall for a 50-foot drain with 1/4" per foot slope.',
-        back_content: '12.5 inches',
-        formula: 'Fall = Length × Slope',
-        steps: [
-          { step: 'Identify values: 50ft length, 1/4"/ft slope', explanation: '' },
-          { step: 'Apply formula: 50 × 0.25 = 12.5 inches', explanation: '' },
-        ],
-        difficulty: 1,
-        created_at: new Date().toISOString(),
-      },
-    ],
-    'sanitation-design': [
-      {
-        id: 'sd-1',
-        topic_id: '3',
-        type: 'recall',
-        front_content: 'What is an air gap in plumbing?',
-        back_content: 'The unobstructed vertical distance between water outlet and flood level rim.',
-        explanation: 'Air gaps prevent backflow and cross-contamination.',
-        difficulty: 1,
-        created_at: new Date().toISOString(),
-      },
-    ],
-    'practical-problems': [
-      {
-        id: 'pp-1',
-        topic_id: '4',
-        type: 'scenario',
-        front_content: 'Multiple fixtures drain slowly with gurgling. What is the likely cause?',
-        back_content: 'Inadequate venting or blocked vent stack.',
-        explanation: 'Gurgling indicates venting problems preventing proper drainage.',
-        difficulty: 2,
-        created_at: new Date().toISOString(),
-      },
-    ],
-  };
-  
-  return allCards[subjectSlug] || [];
+  return count || 0;
 }

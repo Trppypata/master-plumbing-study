@@ -1,85 +1,102 @@
 'use server';
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
-// Server Action to save exam results
-export async function saveExamResult(data: {
+export interface ExamResult {
   score: number;
   total_questions: number;
   correct_answers: number;
   duration_seconds: number;
-  subjects_breakdown: Record<string, any>;
-}) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    console.warn('Supabase credentials missing, cannot save exam results');
-    return { success: false, error: 'Supabase not configured' };
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  try {
-    const { error } = await supabase
-      .from('exam_results')
-      .insert([
-        {
-          score: data.score,
-          total_questions: data.total_questions,
-          correct_answers: data.correct_answers,
-          duration_seconds: data.duration_seconds,
-          subjects_breakdown: data.subjects_breakdown,
-          completed_at: new Date().toISOString()
-        }
-      ]);
-
-    if (error) throw error;
-    return { success: true };
-  } catch (error) {
-    console.error('Error saving exam result:', error);
-    return { success: false, error: 'Failed to save to database' };
-  }
+  subjects_breakdown: any;
 }
 
-// Log mistakes for Smart Review
-export async function logMistakes(mistakes: Array<{
-  question_id: string;
-  question_data: any;
-}>) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) return;
+export async function saveExamResult(result: ExamResult) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  if (!user) throw new Error('Not authenticated');
 
-  for (const mistake of mistakes) {
-    // Check if exists
-    const { data: existing } = await supabase
-      .from('mistakes_log')
-      .select('incorrect_count')
-      .eq('question_id', mistake.question_id)
-      .single();
+  const { error } = await supabase
+    .from('exam_results')
+    .insert({
+      user_id: user.id,
+      ...result,
+      created_at: new Date().toISOString()
+    });
 
-    if (existing) {
-      // Increment count
-      await supabase
-        .from('mistakes_log')
-        .update({ 
-          incorrect_count: existing.incorrect_count + 1,
-          last_missed_at: new Date().toISOString(),
-          is_resolved: false // Re-open if it was resolved
-        })
-        .eq('question_id', mistake.question_id);
-    } else {
-      // Insert new
-      await supabase
-        .from('mistakes_log')
-        .insert({
-          question_id: mistake.question_id,
-          question_data: mistake.question_data,
-          incorrect_count: 1
-        });
-    }
-  }
+  if (error) throw error;
+  revalidatePath('/progress');
+  return { success: true };
+}
+
+export async function logMistakes(mistakes: { question_id: string, question_data: any }[]) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const mistakesToInsert = mistakes.map(m => ({
+    user_id: user.id,
+    flashcard_id: m.question_id,
+    question_data: m.question_data,
+    is_resolved: false,
+    created_at: new Date().toISOString()
+  }));
+
+  const { error } = await supabase
+    .from('mistakes_log')
+    .insert(mistakesToInsert);
+
+  if (error) throw error;
+  return { success: true };
+}
+
+export async function getExamQuestions(count: number) {
+  const supabase = createClient();
+  
+  // Use a Postgres function or a random sort if available
+  // For now, we'll fetch more than needed and shuffle in JS, or use a simple randomizer
+  // A better way is: select * from flashcards order by random() limit count
+  // But since we can't easily do order by random() in basic supabase.from()...
+  
+  const { data, error } = await supabase
+    .from('flashcards')
+    .select(`
+      id,
+      front_content,
+      back_content,
+      choices,
+      explanation,
+      topic:topics!inner(name, subject:subjects!inner(name))
+    `)
+    .limit(count * 2); // Fetch more to allow some randomness
+
+  if (error) throw error;
+
+  // Simple shuffle and limit
+  const shuffled = (data || [])
+    .sort(() => 0.5 - Math.random())
+    .slice(0, count)
+    .map(card => {
+        // Find correct index for multiple choice
+        let correctIndex = -1;
+        if (card.choices && Array.isArray(card.choices)) {
+            correctIndex = card.choices.findIndex((c: any) => c.isCorrect);
+        }
+
+        const topic: any = Array.isArray(card.topic) ? card.topic[0] : card.topic;
+        const subjectName = (Array.isArray(topic?.subject) ? topic.subject[0]?.name : topic?.subject?.name) || 'General';
+
+        return {
+            id: card.id,
+            text: card.front_content,
+            choices: card.choices?.map((c: any) => c.text) || [],
+            correctIndex: correctIndex,
+            explanation: card.explanation || card.back_content,
+            subject: subjectName
+        };
+    });
+
+  return shuffled;
 }

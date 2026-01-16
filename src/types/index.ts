@@ -50,7 +50,7 @@ export interface Flashcard {
   created_at: string;
   // Joined data
   topic?: Topic;
-  progress?: Progress;
+  progress?: Progress | null;
 }
 
 export interface Progress {

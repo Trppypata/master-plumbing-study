@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Subject } from '@/types';
+import { Subject, DashboardStats } from '@/types';
 import DailyQuote from '@/components/DailyQuote';
 import { supabase } from '@/lib/supabase';
+import { getDashboardStats } from '@/lib/data-service';
 import { 
   Flame, 
   CheckCircle2, 
@@ -19,59 +20,69 @@ import {
   Library
 } from 'lucide-react';
 
-// Demo data
-const demoSubjects: Subject[] = [
-  { id: '1', name: 'Plumbing Code', slug: 'plumbing-code', description: 'Venting, drainage, traps & materials.', icon: '📜', color: '#5D866C', display_order: 1, created_at: '' },
-  { id: '2', name: 'Plumbing Arithmetic', slug: 'plumbing-arithmetic', description: 'Pipe sizing, pressures, fixture units.', icon: '🔢', color: '#C2A68C', display_order: 2, created_at: '' },
-  { id: '3', name: 'Sanitation & Design', slug: 'sanitation-design', description: 'System layout, flow, wastewater safety.', icon: '🏗️', color: '#5D866C', display_order: 3, created_at: '' },
-  { id: '4', name: 'Practical Problems', slug: 'practical-problems', description: 'Troubleshooting scenarios & job-site logic.', icon: '🔧', color: '#C2A68C', display_order: 4, created_at: '' },
-];
-
 // Map slug to Lucide icon
 const getSubjectIcon = (slug: string) => {
   switch(slug) {
     case 'plumbing-code': return <Scroll className="w-6 h-6" />;
     case 'plumbing-arithmetic': return <Calculator className="w-6 h-6" />;
-    case 'sanitation-design': return <Wrench className="w-6 h-6" />; // Using Wrench as generic structure icon
+    case 'sanitation-design': return <Wrench className="w-6 h-6" />;
     case 'practical-problems': return <AlertTriangle className="w-6 h-6" />;
     default: return <BookOpen className="w-6 h-6" />;
   }
 };
 
-const demoStats = {
-  totalCards: 482,
-  cardsToday: 24,
-  examReadiness: 68,
-  streak: 3,
-  weakestSubject: demoSubjects[1],
-  subjectStats: [
-    { subject: demoSubjects[0], progressPercent: 75, needsReview: 12 },
-    { subject: demoSubjects[1], progressPercent: 42, needsReview: 28 },
-    { subject: demoSubjects[2], progressPercent: 60, needsReview: 5 },
-    { subject: demoSubjects[3], progressPercent: 85, needsReview: 0 },
-  ],
-};
-
 export default function HomePage() {
-  const [stats] = useState(demoStats);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [mistakeCount, setMistakeCount] = useState(0);
   const greeting = new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening';
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  
-  // Using generic client since we are in single-user mode for now
-  // const supabase = createClientComponentClient(); -> This caused runtime error due to dep update
 
   useEffect(() => {
-    async function loadMistakes() {
-      const { count } = await supabase
-        .from('mistakes_log')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_resolved', false);
-      
-      if (count !== null) setMistakeCount(count);
+    async function loadDashboardData() {
+      try {
+        const [dashboardStats, { count }] = await Promise.all([
+          getDashboardStats(),
+          supabase
+            .from('mistakes_log')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_resolved', false)
+        ]);
+        
+        setStats(dashboardStats);
+        if (count !== null) setMistakeCount(count);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
     }
-    loadMistakes();
+    
+    loadDashboardData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-pulse text-forest font-medium">Preparing your workspace...</div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="text-center py-20">
+        <h2 className="text-xl font-bold text-gray-900">Unable to load dashboard</h2>
+        <p className="text-gray-500 mt-2">Please check your connection and try again.</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-forest text-white rounded-lg"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in pb-20 container mx-auto px-4">
@@ -115,12 +126,12 @@ export default function HomePage() {
           <DailyQuote />
         </div>
 
-        {/* Streak - 1x1 */}
+        {/* Streak - 1x1 (Placeholder for now, but real stats could be used) */}
         <div className="col-span-1 row-span-1 card group hover:border-orange-200 transition-colors bg-gradient-to-br from-orange-50 to-white border-orange-200/50 flex flex-col justify-between p-4 cursor-default">
           <Flame className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
           <div>
-            <div className="text-2xl font-bold text-gray-900">{stats.streak} Days</div>
-            <span className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold">Streak</span>
+            <div className="text-2xl font-bold text-gray-900">{stats.cardsToday > 0 ? 'Active' : 'Start'}</div>
+            <span className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold">Today&apos;s Cards: {stats.cardsToday}</span>
           </div>
         </div>
 
@@ -149,7 +160,7 @@ export default function HomePage() {
           <div className="h-px bg-gray-200 flex-grow"></div>
         </div>
 
-        {/* Subject Cards - 2 columns */}
+        {/* Subject Cards */}
         {stats.subjectStats.map((stat) => (
           <Link
             key={stat.subject.id}
@@ -181,19 +192,21 @@ export default function HomePage() {
         ))}
 
         {/* Focus Area - 2x1 */}
-        <Link 
-          href={`/study/${stats.weakestSubject.slug}`} 
-          className="col-span-1 sm:col-span-2 row-span-1 card group bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200 p-4 flex items-center gap-4"
-        >
-          <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-orange-100 group-hover:scale-105 transition-transform text-orange-500">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div className="flex-grow">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 block">Needs Focus</span>
-            <div className="font-bold text-gray-900">{stats.weakestSubject.name}</div>
-          </div>
-          <ArrowRight className="w-5 h-5 text-orange-400 group-hover:translate-x-1 transition-transform" />
-        </Link>
+        {stats.weakestSubject && (
+          <Link 
+            href={`/study/${stats.weakestSubject.slug}`} 
+            className="col-span-1 sm:col-span-2 row-span-1 card group bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200 p-4 flex items-center gap-4"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white shadow-sm flex items-center justify-center border border-orange-100 group-hover:scale-105 transition-transform text-orange-500">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div className="flex-grow">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 block">Needs Focus</span>
+              <div className="font-bold text-gray-900">{stats.weakestSubject.name}</div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-orange-400 group-hover:translate-x-1 transition-transform" />
+          </Link>
+        )}
 
         {/* Resources - 2x1 */}
         <Link href="/resources" className="col-span-1 sm:col-span-2 row-span-1 card group p-4 flex items-center gap-4 bg-white">
