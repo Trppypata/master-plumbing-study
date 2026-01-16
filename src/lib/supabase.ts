@@ -1,4 +1,8 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// Legacy Supabase client for backward compatibility
+// For new code, use @/lib/supabase/client or @/lib/supabase/server
+
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -14,17 +18,27 @@ export const isSupabaseConfigured = () => {
   );
 };
 
-// Create client only if configured, otherwise create a dummy that won't be used
+// Create a singleton browser client for legacy code
 let supabaseClient: SupabaseClient | null = null;
 
-if (isSupabaseConfigured()) {
-  supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+function getClient(): SupabaseClient | null {
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+  
+  if (!supabaseClient) {
+    supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  }
+  
+  return supabaseClient;
 }
 
-// Export a getter that throws helpful error if not configured
+// Export a proxy that handles unconfigured state gracefully
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop) {
-    if (!supabaseClient) {
+    const client = getClient();
+    
+    if (!client) {
       // Return no-op functions for auth methods to prevent crashes
       if (prop === 'auth') {
         return {
@@ -42,10 +56,21 @@ export const supabase = new Proxy({} as SupabaseClient, {
           insert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
           update: () => ({ data: null, error: { message: 'Supabase not configured' } }),
           upsert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
+          delete: () => ({ data: null, error: { message: 'Supabase not configured' } }),
         });
+      }
+      if (prop === 'storage') {
+        return {
+          from: () => ({
+            upload: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+            download: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+            remove: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+          }),
+        };
       }
       return undefined;
     }
-    return (supabaseClient as any)[prop];
+    
+    return (client as any)[prop];
   },
 });

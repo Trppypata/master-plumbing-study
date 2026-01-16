@@ -1,6 +1,7 @@
 // Authentication helper functions using Supabase Auth
+// Uses @supabase/ssr for proper cookie handling
 
-import { supabase, isSupabaseConfigured } from './supabase';
+import { createClient } from '@/lib/supabase/client';
 import type { User, Session } from '@supabase/supabase-js';
 
 export interface AuthError {
@@ -15,13 +16,7 @@ export interface AuthResult {
 
 // Sign up with email and password
 export async function signUp(email: string, password: string): Promise<AuthResult> {
-  if (!isSupabaseConfigured()) {
-    return {
-      user: null,
-      session: null,
-      error: { message: 'Supabase is not configured. Please add your credentials to .env.local' }
-    };
-  }
+  const supabase = createClient();
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -37,13 +32,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
 
 // Sign in with email and password
 export async function signIn(email: string, password: string): Promise<AuthResult> {
-  if (!isSupabaseConfigured()) {
-    return {
-      user: null,
-      session: null,
-      error: { message: 'Supabase is not configured. Please add your credentials to .env.local' }
-    };
-  }
+  const supabase = createClient();
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -59,29 +48,23 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 
 // Sign out
 export async function signOut(): Promise<{ error: AuthError | null }> {
-  if (!isSupabaseConfigured()) {
-    return { error: null };
-  }
+  const supabase = createClient();
 
   const { error } = await supabase.auth.signOut();
   return { error: error ? { message: error.message } : null };
 }
 
-// Get current session
+// Get current session (client-side)
 export async function getSession(): Promise<Session | null> {
-  if (!isSupabaseConfigured()) {
-    return null;
-  }
+  const supabase = createClient();
 
   const { data: { session } } = await supabase.auth.getSession();
   return session;
 }
 
-// Get current user
+// Get current user (client-side)
 export async function getUser(): Promise<User | null> {
-  if (!isSupabaseConfigured()) {
-    return null;
-  }
+  const supabase = createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
   return user;
@@ -89,9 +72,7 @@ export async function getUser(): Promise<User | null> {
 
 // Listen for auth state changes
 export function onAuthStateChange(callback: (user: User | null) => void) {
-  if (!isSupabaseConfigured()) {
-    return { unsubscribe: () => {} };
-  }
+  const supabase = createClient();
 
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     callback(session?.user ?? null);
