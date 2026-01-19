@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Timer, 
   MessageCircle, 
@@ -9,7 +10,6 @@ import {
   Home, 
   BookOpen, 
   GraduationCap,
-  Volume2,
   X,
   Play,
   Pause,
@@ -31,9 +31,22 @@ import { getAIResponse } from '@/app/actions/ai-chat';
 export default function FloatingDock() {
   const pathname = usePathname();
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'chat'>('none');
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
+
+  const handlePomodoroClick = () => {
+    // If timer is running, don't close the panel - just open it if closed
+    if (pomodoroRunning && activePanel === 'pomodoro') {
+      return; // Do nothing - keep panel open
+    }
+    setActivePanel(prev => prev === 'pomodoro' ? 'none' : 'pomodoro');
+  };
 
   const togglePanel = (panel: 'pomodoro' | 'chat') => {
-    setActivePanel(prev => prev === panel ? 'none' : panel);
+    if (panel === 'pomodoro') {
+      handlePomodoroClick();
+    } else {
+      setActivePanel(prev => prev === panel ? 'none' : panel);
+    }
   };
 
   // Don't show dock on login page
@@ -56,25 +69,41 @@ export default function FloatingDock() {
         pointerEvents: 'none'
       }}>
         <div style={{ pointerEvents: 'auto' }}>
-          {activePanel === 'pomodoro' && <PomodoroPanel onClose={() => setActivePanel('none')} />}
-          {activePanel === 'chat' && <ChatPanel onClose={() => setActivePanel('none')} />}
+          <AnimatePresence mode="wait">
+            {activePanel === 'pomodoro' && (
+              <PomodoroPanel 
+                key="pomodoro"
+                onClose={() => setActivePanel('none')} 
+                onRunningChange={setPomodoroRunning}
+                isRunning={pomodoroRunning}
+              />
+            )}
+            {activePanel === 'chat' && (
+              <ChatPanel key="chat" onClose={() => setActivePanel('none')} />
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
       {/* Floating Dock Bar - Pill Style, Sticky */}
-      <div style={{
-        position: 'fixed',
-        bottom: '24px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 50,
-      }}>
+      <motion.div 
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 50,
+        }}
+      >
         <div style={{
-          background: 'rgba(2, 44, 34, 0.95)', // Deep Forest Green (emerald-950)
+          background: 'rgba(2, 44, 34, 0.95)',
           backdropFilter: 'blur(16px)',
           borderRadius: '9999px',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-          border: '1px solid rgba(34, 197, 94, 0.2)', // Subtle green border
+          border: '1px solid rgba(34, 197, 94, 0.2)',
           padding: '10px 16px',
           display: 'flex',
           alignItems: 'center',
@@ -105,15 +134,37 @@ export default function FloatingDock() {
           {/* Divider */}
           <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.3)', margin: '0 6px' }}></div>
 
-          {/* Tool Buttons */}
+          {/* Pomodoro Button - with running indicator */}
           <button 
             onClick={() => togglePanel('pomodoro')} 
-            className={`dock-item group ${activePanel === 'pomodoro' ? 'bg-[#22c55e]' : ''}`}
+            className={`dock-item group relative ${activePanel === 'pomodoro' ? 'bg-[#22c55e]' : ''}`}
             title="Pomodoro Timer"
           >
-            <Timer style={{ width: 22, height: 22, color: '#ffffff', stroke: '#ffffff', strokeWidth: 2 }} className="transition-all group-hover:scale-110" />
+            <Timer 
+              style={{ width: 22, height: 22, color: '#ffffff', stroke: '#ffffff', strokeWidth: 2 }} 
+              className={`transition-all group-hover:scale-110 ${pomodoroRunning ? 'animate-pulse' : ''}`} 
+            />
+            {/* Running indicator dot */}
+            {pomodoroRunning && (
+              <motion.span 
+                initial={{ scale: 0 }}
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1 }}
+                style={{ 
+                  position: 'absolute', 
+                  top: '2px', 
+                  right: '2px', 
+                  width: '10px', 
+                  height: '10px', 
+                  background: '#ef4444', 
+                  borderRadius: '50%',
+                  border: '2px solid rgba(2, 44, 34, 0.95)'
+                }}
+              />
+            )}
           </button>
 
+          {/* Chat Button */}
           <button 
             onClick={() => togglePanel('chat')} 
             className={`dock-item group relative ${activePanel === 'chat' ? 'bg-[#22c55e]' : ''}`}
@@ -132,9 +183,7 @@ export default function FloatingDock() {
             }}></span>
           </button>
         </div>
-      </div>
-
-
+      </motion.div>
 
       {/* Dock Item Styles */}
       <style jsx global>{`
@@ -175,15 +224,17 @@ export default function FloatingDock() {
 
 interface PanelProps {
   onClose: () => void;
+  onRunningChange?: (running: boolean) => void;
+  isRunning?: boolean;
 }
 
-function PomodoroPanel({ onClose }: PanelProps) {
+function PomodoroPanel({ onClose, onRunningChange, isRunning: externalIsRunning }: PanelProps) {
   type Mode = 'focus' | 'short' | 'long';
   const DURATIONS: Record<Mode, number> = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
   
   const [mode, setMode] = useState<Mode>('focus');
   const [timeLeft, setTimeLeft] = useState(DURATIONS[mode]);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning, setIsRunning] = useState(externalIsRunning || false);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -191,13 +242,19 @@ function PomodoroPanel({ onClose }: PanelProps) {
       setTimeLeft(prev => {
         if (prev <= 1) {
           setIsRunning(false);
+          onRunningChange?.(false);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, onRunningChange]);
+
+  // Sync running state with parent
+  useEffect(() => {
+    onRunningChange?.(isRunning);
+  }, [isRunning, onRunningChange]);
 
   const switchMode = (newMode: Mode) => {
     setMode(newMode);
@@ -214,14 +271,44 @@ function PomodoroPanel({ onClose }: PanelProps) {
   const progress = ((DURATIONS[mode] - timeLeft) / DURATIONS[mode]) * 100;
 
   return (
-    <div className="w-72 rounded-2xl border border-gray-100 overflow-hidden animate-slide-up" style={{ backgroundColor: 'white', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0, 
+        scale: 1,
+      }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className="w-72 rounded-2xl border border-gray-100 overflow-hidden" 
+      style={{ backgroundColor: 'white', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <div className="flex items-center gap-2">
-          <Timer className="w-4 h-4 text-[var(--color-forest)]" />
+          <motion.div
+            animate={isRunning ? { rotate: [0, 10, -10, 0] } : {}}
+            transition={{ repeat: Infinity, duration: 0.5, repeatDelay: 2 }}
+          >
+            <Timer className="w-4 h-4 text-[var(--color-forest)]" />
+          </motion.div>
           <span className="font-semibold text-sm">Pomodoro</span>
+          {isRunning && (
+            <motion.span 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium"
+            >
+              Running
+            </motion.span>
+          )}
         </div>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+        <button 
+          onClick={onClose} 
+          className={`text-gray-400 hover:text-gray-600 ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+          disabled={isRunning}
+          title={isRunning ? "Timer is running" : "Close"}
+        >
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -232,8 +319,10 @@ function PomodoroPanel({ onClose }: PanelProps) {
           <button
             key={m}
             onClick={() => switchMode(m)}
+            disabled={isRunning}
             className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1
-              ${mode === m ? 'bg-[var(--color-forest)] text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+              ${mode === m ? 'bg-[var(--color-forest)] text-white' : 'text-gray-500 hover:bg-gray-100'}
+              ${isRunning && mode !== m ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {m === 'focus' && <Zap className="w-3 h-3" />}
             {m === 'short' && <Coffee className="w-3 h-3" />}
@@ -245,35 +334,45 @@ function PomodoroPanel({ onClose }: PanelProps) {
 
       {/* Timer Display */}
       <div className="p-6 text-center">
-        <div className="text-5xl font-mono font-bold tracking-tight text-[var(--color-text)]">
+        <motion.div 
+          className="text-5xl font-mono font-bold tracking-tight text-[var(--color-text)]"
+          animate={isRunning ? { scale: [1, 1.02, 1] } : {}}
+          transition={{ repeat: Infinity, duration: 1 }}
+        >
           {formatTime(timeLeft)}
-        </div>
+        </motion.div>
         {/* Progress Bar */}
         <div className="w-full h-1.5 bg-gray-100 rounded-full mt-4 overflow-hidden">
-          <div 
-            className="h-full bg-[var(--color-forest)] rounded-full transition-all duration-1000"
-            style={{ width: `${progress}%` }}
+          <motion.div 
+            className="h-full bg-[var(--color-forest)] rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.5 }}
           />
         </div>
       </div>
 
       {/* Controls */}
       <div className="flex justify-center gap-3 pb-4">
-        <button
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setIsRunning(!isRunning)}
-          className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all
+          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all
             ${isRunning ? 'bg-orange-500 hover:bg-orange-600' : 'bg-[var(--color-forest)] hover:bg-[#4A6B52]'} text-white`}
         >
-          {isRunning ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-        </button>
-        <button
+          {isRunning ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => { setTimeLeft(DURATIONS[mode]); setIsRunning(false); }}
           className="w-12 h-12 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors text-gray-600"
         >
           <RotateCcw className="w-5 h-5" />
-        </button>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -288,7 +387,7 @@ interface Message {
 
 const QUICK_PROMPTS = ['Explain venting', 'Calculate fall', 'What is DFU?', 'Backflow'];
 
-function ChatPanel({ onClose }: PanelProps) {
+function ChatPanel({ onClose }: { onClose: () => void }) {
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: 'Hi! Ask me anything about plumbing.' }
   ]);
@@ -316,7 +415,14 @@ function ChatPanel({ onClose }: PanelProps) {
   };
 
   return (
-    <div className="w-80 sm:w-96 rounded-2xl border border-gray-100 overflow-hidden animate-slide-up" style={{ backgroundColor: 'white', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+    <motion.div 
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className="w-80 sm:w-96 rounded-2xl border border-gray-100 overflow-hidden" 
+      style={{ backgroundColor: 'white', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}
+    >
       {/* Header */}
       <div className="bg-gradient-to-r from-[var(--color-forest)] to-[#3D5A47] text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -332,7 +438,12 @@ function ChatPanel({ onClose }: PanelProps) {
       {/* Messages */}
       <div className="h-56 overflow-y-auto p-3 space-y-2 bg-gray-50">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+          <motion.div 
+            key={i} 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}
+          >
             {msg.role === 'assistant' && (
               <div className="w-6 h-6 rounded-full bg-[var(--color-forest)] text-white flex items-center justify-center flex-shrink-0">
                 <Bot className="w-3 h-3" />
@@ -348,7 +459,7 @@ function ChatPanel({ onClose }: PanelProps) {
                 <User className="w-3 h-3" />
               </div>
             )}
-          </div>
+          </motion.div>
         ))}
         {isLoading && (
           <div className="flex gap-2">
@@ -368,9 +479,15 @@ function ChatPanel({ onClose }: PanelProps) {
       {/* Quick Prompts */}
       <div className="px-3 py-2 bg-white border-t border-gray-100 flex gap-1.5 overflow-x-auto">
         {QUICK_PROMPTS.map((p, i) => (
-          <button key={i} onClick={() => sendMessage(p)} className="text-[10px] px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-full whitespace-nowrap text-gray-600">
+          <motion.button 
+            key={i} 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => sendMessage(p)} 
+            className="text-[10px] px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-full whitespace-nowrap text-gray-600"
+          >
             {p}
-          </button>
+          </motion.button>
         ))}
       </div>
 
@@ -384,11 +501,17 @@ function ChatPanel({ onClose }: PanelProps) {
             placeholder="Ask a question..."
             className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--color-forest)]"
           />
-          <button type="submit" disabled={!input.trim() || isLoading} className="w-9 h-9 bg-[var(--color-forest)] text-white rounded-lg flex items-center justify-center disabled:opacity-50">
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            type="submit" 
+            disabled={!input.trim() || isLoading} 
+            className="w-9 h-9 bg-[var(--color-forest)] text-white rounded-lg flex items-center justify-center disabled:opacity-50"
+          >
             <Send className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
       </form>
-    </div>
+    </motion.div>
   );
 }
