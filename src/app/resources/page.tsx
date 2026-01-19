@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DocumentUploader, { DocumentList } from '@/components/DocumentUploader';
 import { getSubjects, getTopics } from '@/lib/data-service';
+import { getDocuments, DocumentInfo } from '@/app/actions/upload-document';
 import { Subject, Topic } from '@/types';
 
 export default function ResourcesPage() {
