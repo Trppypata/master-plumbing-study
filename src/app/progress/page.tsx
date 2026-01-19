@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { TrendingUp, Target, Clock, Flame, Award, BookOpen, BarChart3 } from 'lucide-react';
+import { TrendingUp, Target, Clock, Flame, Award, BookOpen, BarChart3, Calendar } from 'lucide-react';
 import { triggerConfetti } from '@/lib/confetti';
-import { getProgressSummary, getStudyStreak } from '@/app/actions/progress';
+import { getProgressSummary, getStudyStreak, getStreakCalendar, CalendarDay } from '@/app/actions/progress';
 import { getChartData, getSubjectProgress, DailyChartData, SubjectProgress, getTotalStudyTime } from '@/app/actions/charts';
 import { calculateExamReadiness } from '@/lib/spaced-repetition';
 
@@ -15,24 +15,27 @@ export default function ProgressPage() {
   const [chartData, setChartData] = useState<DailyChartData[]>([]);
   const [subjects, setSubjects] = useState<SubjectProgress[]>([]);
   const [studyTime, setStudyTime] = useState(0);
+  const [calendarData, setCalendarData] = useState<CalendarDay[]>([]);
 
   useEffect(() => {
     loadData();
   }, []);
 // ...
   const loadData = async () => {
-    const [sum, str, chart, subj, time] = await Promise.all([
+    const [sum, str, chart, subj, time, cal] = await Promise.all([
       getProgressSummary(),
       getStudyStreak(),
       getChartData(14),
       getSubjectProgress(),
       getTotalStudyTime(),
+      getStreakCalendar(),
     ]);
     setSummary(sum);
     setStreak(str);
     setChartData(chart);
     setSubjects(subj);
     setStudyTime(time);
+    setCalendarData(cal);
     setLoading(false);
 
     // Trigger confetti if streak is good!
@@ -122,6 +125,57 @@ export default function ProgressPage() {
         </div>
       </div>
 
+      {/* Streak Calendar */}
+      <div className="card mb-8">
+        <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+          <Calendar className="w-4 h-4" /> Study Streak
+          {streak > 0 && (
+            <span className="ml-auto text-xs font-normal text-orange-500 flex items-center gap-1">
+              <Flame className="w-3 h-3" /> {streak} day streak!
+            </span>
+          )}
+        </h3>
+        <div className="overflow-x-auto pb-2">
+          <div className="flex gap-1 min-w-max">
+            {/* Group days into weeks (columns) */}
+            {Array.from({ length: 7 }).map((_, weekIdx) => (
+              <div key={weekIdx} className="flex flex-col gap-1">
+                {calendarData.slice(weekIdx * 7, weekIdx * 7 + 7).map((day, dayIdx) => {
+                  const levelColors = [
+                    'bg-gray-100',     // Level 0: no activity
+                    'bg-emerald-200',  // Level 1: low
+                    'bg-emerald-300',  // Level 2: medium-low
+                    'bg-emerald-400',  // Level 3: medium-high
+                    'bg-emerald-600',  // Level 4: high
+                  ];
+                  const dayDate = new Date(day.date);
+                  const isToday = new Date().toISOString().split('T')[0] === day.date;
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={`w-4 h-4 rounded-sm ${levelColors[day.level]} ${isToday ? 'ring-2 ring-orange-400 ring-offset-1' : ''} transition-all hover:scale-125`}
+                      title={`${dayDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}: ${day.cardsStudied} cards`}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between mt-3 text-[10px] text-gray-400">
+            <span>7 weeks ago</span>
+            <div className="flex items-center gap-1">
+              <span>Less</span>
+              <div className="w-3 h-3 rounded-sm bg-gray-100" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-200" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-300" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-400" />
+              <div className="w-3 h-3 rounded-sm bg-emerald-600" />
+              <span>More</span>
+            </div>
+            <span>Today</span>
+          </div>
+        </div>
+      </div>
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Progress Breakdown */}
         <div className="lg:col-span-2">

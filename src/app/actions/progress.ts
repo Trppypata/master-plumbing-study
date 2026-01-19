@@ -175,3 +175,57 @@ export async function getProgressSummary(): Promise<{
 
   return { total, mastered, learning, needsReview, new: newCards };
 }
+
+export interface CalendarDay {
+  date: string;
+  cardsStudied: number;
+  level: 0 | 1 | 2 | 3 | 4; // 0 = no activity, 4 = high activity
+}
+
+/**
+ * Get streak calendar data for the last 7 weeks
+ */
+export async function getStreakCalendar(): Promise<CalendarDay[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  // Get data for the last 49 days (7 weeks)
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 48);
+  startDate.setHours(0, 0, 0, 0);
+
+  const { data } = await supabase
+    .from('daily_stats')
+    .select('date, cards_studied')
+    .gte('date', startDate.toISOString().split('T')[0])
+    .order('date', { ascending: true });
+
+  // Create a map of dates to cards studied
+  const statsMap = new Map<string, number>();
+  data?.forEach(d => statsMap.set(d.date, d.cards_studied));
+
+  // Find max for level calculation
+  const maxCards = Math.max(...(data?.map(d => d.cards_studied) || [0]), 1);
+
+  // Generate 49 days of calendar data
+  const calendar: CalendarDay[] = [];
+  for (let i = 48; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    const cardsStudied = statsMap.get(dateStr) || 0;
+    
+    // Calculate level (0-4)
+    let level: 0 | 1 | 2 | 3 | 4 = 0;
+    if (cardsStudied > 0) {
+      const ratio = cardsStudied / maxCards;
+      if (ratio > 0.75) level = 4;
+      else if (ratio > 0.5) level = 3;
+      else if (ratio > 0.25) level = 2;
+      else level = 1;
+    }
+
+    calendar.push({ date: dateStr, cardsStudied, level });
+  }
+
+  return calendar;
+}
