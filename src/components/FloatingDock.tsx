@@ -674,8 +674,9 @@ function SpotifyPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Spotify Embed */}
-      <div className="p-2 bg-black/5 relative">
+      <div className="p-2 bg-black/5 relative min-h-[352px]">
         <iframe
+          key={currentPlaylist} // Force reload when playlist changes
           style={{ borderRadius: '12px' }}
           src={`https://open.spotify.com/embed/playlist/${currentPlaylist}?utm_source=generator&theme=0`}
           width="100%"
@@ -685,8 +686,30 @@ function SpotifyPanel({ onClose }: { onClose: () => void }) {
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
         />
-        <div className="absolute bottom-3 right-3 left-3 bg-black/80 text-white text-[10px] p-2 rounded text-center backdrop-blur-sm pointer-events-none opacity-80">
-          Login to Spotify in your browser for full playback (otherwise 30s preview)
+        
+        {/* Playback Controls Helper */}
+        <div className="absolute bottom-3 right-3 left-3 flex gap-2 justify-center pointer-events-none">
+           <a 
+             href="https://accounts.spotify.com/en/login?continue=https://open.spotify.com" 
+             target="_blank"
+             rel="noopener noreferrer"
+             className="pointer-events-auto bg-black/80 hover:bg-black text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors flex items-center gap-1.5"
+           >
+             <User className="w-3 h-3" />
+             Log in
+           </a>
+           <button
+             onClick={() => {
+               // Hack to force reload iframe by toggling key slightly
+               const current = currentPlaylist;
+               setCurrentPlaylist('');
+               setTimeout(() => setCurrentPlaylist(current), 10);
+             }}
+             className="pointer-events-auto bg-black/80 hover:bg-black text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors flex items-center gap-1.5"
+           >
+             <RotateCcw className="w-3 h-3" />
+             Reload
+           </button>
         </div>
       </div>
 
