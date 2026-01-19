@@ -22,7 +22,8 @@ import {
   Zap,
   Music,
   Headphones,
-  ExternalLink
+  ExternalLink,
+  Search
 } from 'lucide-react';
 import Link from 'next/link';
 import { getAIResponse } from '@/app/actions/ai-chat';
@@ -31,25 +32,35 @@ import { getAIResponse } from '@/app/actions/ai-chat';
 // FLOATING DOCK - Main Component
 // ============================================
 
+type PanelType = 'pomodoro' | 'chat' | 'music';
+
 export default function FloatingDock() {
   const pathname = usePathname();
-  const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'chat' | 'music'>('none');
+  const [activePanels, setActivePanels] = useState<PanelType[]>([]);
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
 
-  const handlePomodoroClick = () => {
-    // If timer is running, don't close the panel - just open it if closed
-    if (pomodoroRunning && activePanel === 'pomodoro') {
-      return; // Do nothing - keep panel open
-    }
-    setActivePanel(prev => prev === 'pomodoro' ? 'none' : 'pomodoro');
+  const togglePanel = (panel: PanelType) => {
+    setActivePanels(prev => {
+      // If panel is already open, close it
+      if (prev.includes(panel)) {
+        // Exception: If pomodoro is running, don't close it easily (though user can still click X on panel)
+        // But clicking the dock icon acts as a toggle, so we should probably allow closing here too,
+        // or maybe just bring it to front/focus it?
+        // User asked for "uninterruptible" - let's interpret that as "timer keeps running even if closed",
+        // OR "clicking dock icon doesn't accidentally close it if running".
+        // Let's go with: if running, clicking icon brings to front (or does nothing if already visible), doesn't close.
+        if (panel === 'pomodoro' && pomodoroRunning) {
+          return prev; // Don't close via dock click if running
+        }
+        return prev.filter(p => p !== panel);
+      }
+      // If panel is not open, add it
+      return [...prev, panel];
+    });
   };
 
-  const togglePanel = (panel: 'pomodoro' | 'chat' | 'music') => {
-    if (panel === 'pomodoro') {
-      handlePomodoroClick();
-    } else {
-      setActivePanel(prev => prev === panel ? 'none' : panel);
-    }
+  const closePanel = (panel: PanelType) => {
+    setActivePanels(prev => prev.filter(p => p !== panel));
   };
 
   // Don't show dock on login page
@@ -59,33 +70,33 @@ export default function FloatingDock() {
 
   return (
     <>
-      {/* Panels */}
+      {/* Panels Stack - Rendered vertically */}
       <div style={{
         position: 'fixed',
         bottom: '96px',
         right: '24px',
         zIndex: 40,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'column-reverse', // Stack upwards
         alignItems: 'flex-end',
         gap: '16px',
         pointerEvents: 'none'
       }}>
-        <div style={{ pointerEvents: 'auto' }}>
-          <AnimatePresence mode="wait">
-            {activePanel === 'pomodoro' && (
+        <div style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column-reverse', gap: '16px' }}>
+          <AnimatePresence>
+            {activePanels.includes('pomodoro') && (
               <PomodoroPanel 
                 key="pomodoro"
-                onClose={() => setActivePanel('none')} 
+                onClose={() => closePanel('pomodoro')} 
                 onRunningChange={setPomodoroRunning}
                 isRunning={pomodoroRunning}
               />
             )}
-            {activePanel === 'chat' && (
-              <ChatPanel key="chat" onClose={() => setActivePanel('none')} />
+            {activePanels.includes('chat') && (
+              <ChatPanel key="chat" onClose={() => closePanel('chat')} />
             )}
-            {activePanel === 'music' && (
-              <SpotifyPanel key="music" onClose={() => setActivePanel('none')} />
+            {activePanels.includes('music') && (
+              <SpotifyPanel key="music" onClose={() => closePanel('music')} />
             )}
           </AnimatePresence>
         </div>
@@ -142,7 +153,7 @@ export default function FloatingDock() {
           {/* Pomodoro Button - with running indicator */}
           <button 
             onClick={() => togglePanel('pomodoro')} 
-            className={`dock-item group relative ${activePanel === 'pomodoro' ? 'bg-[#22c55e]' : ''}`}
+            className={`dock-item group relative ${activePanels.includes('pomodoro') ? 'bg-[#22c55e]' : ''}`}
             title="Pomodoro Timer"
           >
             <Timer 
@@ -172,7 +183,7 @@ export default function FloatingDock() {
           {/* Chat Button */}
           <button 
             onClick={() => togglePanel('chat')} 
-            className={`dock-item group relative ${activePanel === 'chat' ? 'bg-[#22c55e]' : ''}`}
+            className={`dock-item group relative ${activePanels.includes('chat') ? 'bg-[#22c55e]' : ''}`}
             title="AI Tutor"
           >
             <MessageCircle style={{ width: 22, height: 22, color: '#ffffff', stroke: '#ffffff', strokeWidth: 2 }} className="transition-all group-hover:scale-110" />
@@ -191,7 +202,7 @@ export default function FloatingDock() {
           {/* Music Button */}
           <button 
             onClick={() => togglePanel('music')} 
-            className={`dock-item group relative ${activePanel === 'music' ? 'bg-[#22c55e]' : ''}`}
+            className={`dock-item group relative ${activePanels.includes('music') ? 'bg-[#22c55e]' : ''}`}
             title="Study Music"
           >
             <Music style={{ width: 22, height: 22, color: '#ffffff', stroke: '#ffffff', strokeWidth: 2 }} className="transition-all group-hover:scale-110" />
@@ -546,6 +557,7 @@ function SpotifyPanel({ onClose }: { onClose: () => void }) {
   const [currentPlaylist, setCurrentPlaylist] = useState(STUDY_PLAYLISTS[0].id);
   const [customUrl, setCustomUrl] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const extractPlaylistId = (url: string): string | null => {
     // Handle Spotify URLs like: https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO
@@ -560,6 +572,13 @@ function SpotifyPanel({ onClose }: { onClose: () => void }) {
       setCurrentPlaylist(id);
       setShowCustomInput(false);
       setCustomUrl('');
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.open(`https://open.spotify.com/search/${encodeURIComponent(searchQuery)}`, '_blank');
     }
   };
 
@@ -583,8 +602,31 @@ function SpotifyPanel({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      {/* Playlist Selector */}
+      {/* Search Helper */}
       <div className="p-3 bg-gray-50 border-b border-gray-100">
+        <form onSubmit={handleSearch} className="flex gap-2">
+           <input
+             type="text"
+             value={searchQuery}
+             onChange={(e) => setSearchQuery(e.target.value)}
+             placeholder="Search songs on Spotify..."
+             className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-full focus:outline-none focus:border-[#1DB954]"
+           />
+           <button 
+             type="submit"
+             className="w-7 h-7 bg-[#1DB954] text-white rounded-full flex items-center justify-center hover:bg-[#1ed760] transition-colors"
+             title="Open Search in New Tab"
+           >
+             <Search className="w-3.5 h-3.5" />
+           </button>
+        </form>
+        <p className="text-[10px] text-gray-400 mt-1 pl-1">
+          * Opens a new tab to find links
+        </p>
+      </div>
+
+      {/* Playlist Selector */}
+      <div className="p-3 bg-white border-b border-gray-100">
         <div className="flex flex-wrap gap-1.5">
           {STUDY_PLAYLISTS.map((playlist) => (
             <motion.button
@@ -632,7 +674,7 @@ function SpotifyPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {/* Spotify Embed */}
-      <div className="p-2">
+      <div className="p-2 bg-black/5 relative">
         <iframe
           style={{ borderRadius: '12px' }}
           src={`https://open.spotify.com/embed/playlist/${currentPlaylist}?utm_source=generator&theme=0`}
@@ -643,6 +685,9 @@ function SpotifyPanel({ onClose }: { onClose: () => void }) {
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
         />
+        <div className="absolute bottom-3 right-3 left-3 bg-black/80 text-white text-[10px] p-2 rounded text-center backdrop-blur-sm pointer-events-none opacity-80">
+          Login to Spotify in your browser for full playback (otherwise 30s preview)
+        </div>
       </div>
 
       {/* Footer */}
