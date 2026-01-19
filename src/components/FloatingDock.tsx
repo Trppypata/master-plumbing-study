@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { 
   Timer, 
   MessageCircle, 
@@ -28,11 +29,17 @@ import { getAIResponse } from '@/app/actions/ai-chat';
 // ============================================
 
 export default function FloatingDock() {
+  const pathname = usePathname();
   const [activePanel, setActivePanel] = useState<'none' | 'pomodoro' | 'chat'>('none');
 
   const togglePanel = (panel: 'pomodoro' | 'chat') => {
     setActivePanel(prev => prev === panel ? 'none' : panel);
   };
+
+  // Don't show dock on login page
+  if (pathname === '/login') {
+    return null;
+  }
 
   return (
     <>
