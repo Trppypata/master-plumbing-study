@@ -109,3 +109,33 @@ export async function getTopics() {
     if (error) throw error;
     return data;
 }
+
+// Batch create flashcards (for AI Generator)
+export async function createFlashcardsBatch(
+  cards: { front: string; back: string; explanation?: string }[],
+  topicId: string
+) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Not authenticated');
+
+  const cardsToInsert = cards.map(card => ({
+    topic_id: topicId,
+    type: 'recall' as FlashcardType,
+    front_content: card.front,
+    back_content: card.back,
+    explanation: card.explanation,
+    difficulty: 1
+  }));
+
+  const { error } = await supabase
+    .from('flashcards')
+    .insert(cardsToInsert);
+
+  if (error) throw error;
+  
+  revalidatePath('/dashboard');
+  revalidatePath('/study');
+  return { success: true };
+}

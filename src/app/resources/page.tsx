@@ -3,24 +3,38 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import DocumentUploader, { DocumentList } from '@/components/DocumentUploader';
-import { getDocuments, DocumentInfo } from '@/app/actions/upload-document';
+import { getSubjects, getTopics } from '@/lib/data-service';
+import { Subject, Topic } from '@/types';
 
 export default function ResourcesPage() {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadDocuments = async () => {
-    const docs = await getDocuments();
-    setDocuments(docs);
-    setLoading(false);
+  const loadData = async () => {
+    try {
+      const [docs, subjs, tops] = await Promise.all([
+        getDocuments(),
+        getSubjects(),
+        getTopics()
+      ]);
+      setDocuments(docs);
+      setSubjects(subjs);
+      setTopics(tops);
+    } catch (error) {
+      console.error("Failed to load resources data", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadDocuments();
+    loadData();
   }, []);
 
   const handleUploadComplete = () => {
-    loadDocuments();
+    loadData();
   };
 
   const handleDelete = (id: string) => {
@@ -61,7 +75,11 @@ export default function ResourcesPage() {
             <p className="text-xs text-gray-500 mb-4">
               Upload plumbing code books, exam guides, and regulations. The AI Tutor will use these to answer your questions with accurate citations.
             </p>
-            <DocumentUploader onUploadComplete={handleUploadComplete} />
+            <DocumentUploader 
+              onUploadComplete={handleUploadComplete} 
+              subjects={subjects}
+              topics={topics}
+            />
           </div>
 
           {/* Uploaded Documents */}
@@ -77,7 +95,12 @@ export default function ResourcesPage() {
             {loading ? (
               <div className="text-center py-4 text-gray-400 text-sm">Loading...</div>
             ) : (
-              <DocumentList documents={documents} onDelete={handleDelete} />
+              <DocumentList 
+                documents={documents} 
+                onDelete={handleDelete}
+                subjects={subjects}
+                topics={topics} 
+              />
             )}
           </div>
 

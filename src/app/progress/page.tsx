@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { TrendingUp, Target, Clock, Flame, Award, BookOpen, BarChart3 } from 'lucide-react';
+import { triggerConfetti } from '@/lib/confetti';
 import { getProgressSummary, getStudyStreak } from '@/app/actions/progress';
 import { getChartData, getSubjectProgress, DailyChartData, SubjectProgress, getTotalStudyTime } from '@/app/actions/charts';
 import { calculateExamReadiness } from '@/lib/spaced-repetition';
@@ -18,7 +19,7 @@ export default function ProgressPage() {
   useEffect(() => {
     loadData();
   }, []);
-
+// ...
   const loadData = async () => {
     const [sum, str, chart, subj, time] = await Promise.all([
       getProgressSummary(),
@@ -33,6 +34,11 @@ export default function ProgressPage() {
     setSubjects(subj);
     setStudyTime(time);
     setLoading(false);
+
+    // Trigger confetti if streak is good!
+    if (str >= 3) {
+        triggerConfetti();
+    }
   };
 
   const readiness = calculateExamReadiness(summary.total, summary.mastered, summary.learning);
@@ -212,6 +218,42 @@ export default function ProgressPage() {
                 })}
               </div>
             )}
+          </div>
+
+
+          {/* Badges Section */}
+          <div className="card mt-6 relative overflow-hidden">
+            <h3 className="text-sm font-semibold mb-4 flex items-center gap-2">
+              <Award className="w-4 h-4" /> Achievements
+            </h3>
+            <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                {/* Streak Badge */}
+                <div className={`flex-shrink-0 w-24 h-32 rounded-xl flex flex-col items-center justify-center p-3 text-center border-2 transition-all ${streak >= 3 ? 'bg-orange-50 border-orange-200 opacity-100' : 'bg-gray-50 border-dashed border-gray-200 opacity-60'}`}>
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2 shadow-sm text-2xl">
+                        🔥
+                    </div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">On Fire</div>
+                    <div className="text-xs font-bold text-gray-900">3 Day Streak</div>
+                </div>
+
+                {/* Master Badge */}
+                <div className={`flex-shrink-0 w-24 h-32 rounded-xl flex flex-col items-center justify-center p-3 text-center border-2 transition-all ${summary.mastered >= 10 ? 'bg-emerald-50 border-emerald-200 opacity-100' : 'bg-gray-50 border-dashed border-gray-200 opacity-60'}`}>
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2 shadow-sm text-2xl">
+                        🧠
+                    </div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Scholar</div>
+                    <div className="text-xs font-bold text-gray-900">10 Mastered</div>
+                </div>
+
+                {/* Exam Ready Badge */}
+                <div className={`flex-shrink-0 w-24 h-32 rounded-xl flex flex-col items-center justify-center p-3 text-center border-2 transition-all ${readiness >= 80 ? 'bg-blue-50 border-blue-200 opacity-100' : 'bg-gray-50 border-dashed border-gray-200 opacity-60'}`}>
+                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-2 shadow-sm text-2xl">
+                        🎓
+                    </div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1">Pro</div>
+                    <div className="text-xs font-bold text-gray-900">80% Ready</div>
+                </div>
+            </div>
           </div>
 
           {/* Quick Tips */}

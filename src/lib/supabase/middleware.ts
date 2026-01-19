@@ -8,9 +8,20 @@ export function createClient(request: NextRequest) {
     },
   });
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('Supabase env vars missing in middleware');
+    // Return a dummy client or throw a handled error, but for middleware we better return strict response or just next()
+    // However, createServerClient requires valid URL. 
+    // We will throw to be caught by the middleware try/catch block
+    throw new Error('Supabase configuration missing');
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {

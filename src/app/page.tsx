@@ -19,6 +19,7 @@ import {
   Brain,
   Library
 } from 'lucide-react';
+import ReviewButton from '@/components/ReviewButton';
 
 // Map slug to Lucide icon
 const getSubjectIcon = (slug: string) => {
@@ -126,13 +127,11 @@ export default function HomePage() {
           <DailyQuote />
         </div>
 
-        {/* Streak - 1x1 (Placeholder for now, but real stats could be used) */}
-        <div className="col-span-1 row-span-1 card group hover:border-orange-200 transition-colors bg-gradient-to-br from-orange-50 to-white border-orange-200/50 flex flex-col justify-between p-4 cursor-default">
-          <Flame className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
-          <div>
-            <div className="text-2xl font-bold text-gray-900">{stats.cardsToday > 0 ? 'Active' : 'Start'}</div>
-            <span className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold">Today&apos;s Cards: {stats.cardsToday}</span>
-          </div>
+        {/* Daily Review Call to Action - 1x1 */}
+        <div className="col-span-1 row-span-1 flex flex-col gap-2">
+           <Link href="/daily-review" className="h-full">
+              <ReviewButton />
+           </Link>
         </div>
 
         {/* Mistake Bank - 1x1 */}

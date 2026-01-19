@@ -91,6 +91,10 @@ export default function FloatingDock() {
             <Brain style={{ width: 22, height: 22, color: '#ffffff', stroke: '#ffffff', strokeWidth: 2 }} className="group-hover:scale-110 transition-all" />
           </Link>
 
+          <Link href="/flashcards/generate" className="dock-item group" title="AI Generator">
+            <Sparkles style={{ width: 22, height: 22, color: '#ffffff', stroke: '#ffffff', strokeWidth: 2 }} className="group-hover:scale-110 transition-all" />
+          </Link>
+
           {/* Divider */}
           <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.3)', margin: '0 6px' }}></div>
 

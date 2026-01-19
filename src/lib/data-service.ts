@@ -42,6 +42,18 @@ export async function getSubjectBySlug(slug: string): Promise<Subject | null> {
   return data;
 }
 
+export async function getTopics(): Promise<Topic[]> {
+  if (!isSupabaseConfigured()) return [];
+
+  const { data, error } = await supabase
+    .from('topics')
+    .select('*, subject:subjects(*)')
+    .order('name');
+  
+  if (error) throw error;
+  return data || [];
+}
+
 // ============================================
 // FLASHCARDS
 // ============================================
@@ -193,7 +205,7 @@ async function getCardsReviewedToday(): Promise<number> {
   const { count, error } = await supabase
     .from('study_history')
     .select('*', { count: 'exact', head: true })
-    .gte('created_at', today.toISOString());
+    .gte('studied_at', today.toISOString());
 
   if (error) {
     console.error('Error fetching today\'s stats:', error);
@@ -202,3 +214,5 @@ async function getCardsReviewedToday(): Promise<number> {
 
   return count || 0;
 }
+
+

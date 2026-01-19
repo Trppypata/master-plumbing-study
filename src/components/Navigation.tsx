@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
+import { Settings } from 'lucide-react';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -45,13 +46,15 @@ export default function Navigation() {
           {!loading && (
             <>
               {user ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-tan hide-mobile">
-                    {user.email?.split('@')[0]}
-                  </span>
+                <div className="flex items-center gap-2">
+                  <Link href="/settings" className="flex items-center gap-1.5 text-xs text-tan hover:text-forest transition-colors p-1 rounded-lg hover:bg-forest/5" title="Settings">
+                    <Settings className="w-4 h-4" />
+                    <span className="hide-mobile font-medium">{user?.email?.split('@')[0]}</span>
+                  </Link>
+                  <div className="w-px h-3 bg-gray-300 mx-1"></div>
                   <button
                     onClick={() => signOut()}
-                    className="btn btn-ghost text-xs"
+                    className="btn btn-ghost text-xs px-2"
                   >
                     Sign Out
                   </button>
