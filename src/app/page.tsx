@@ -121,12 +121,15 @@ export default function HomePage() {
       {/* ===== BENTO GRID ===== */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[140px]">
 
-        {/* Readiness - Large 2x2 */}
-        <div className="col-span-1 sm:col-span-2 row-span-2 relative overflow-hidden rounded-xl bg-gradient-to-br from-[#F0FDF4] to-white border border-forest/20 p-6 flex flex-col justify-between group">
+        {/* Readiness - Large 2x2 - Links to Progress */}
+        <Link href="/progress" className="col-span-1 sm:col-span-2 row-span-2 relative overflow-hidden rounded-xl bg-gradient-to-br from-[#F0FDF4] to-white border border-forest/20 p-6 flex flex-col justify-between group cursor-pointer hover:border-forest/40 transition-colors">
           <div className="absolute -right-8 -top-8 w-32 h-32 bg-forest rounded-full opacity-5 group-hover:scale-150 transition-transform duration-700"></div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-forest">
-            Exam Readiness
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-forest">
+              Exam Readiness
+            </span>
+            <span className="text-[10px] text-gray-400 group-hover:text-forest transition-colors">View Progress →</span>
+          </div>
           <div>
             <div className="text-[4rem] font-black tracking-tighter leading-none text-gray-900">
               {stats.examReadiness}%
@@ -138,7 +141,7 @@ export default function HomePage() {
               />
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Daily Quote - 2x2 */}
         <div className="col-span-1 sm:col-span-2 row-span-2">
