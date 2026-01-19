@@ -6,6 +6,7 @@ import { Subject, DashboardStats } from '@/types';
 import DailyQuote from '@/components/DailyQuote';
 import { supabase } from '@/lib/supabase';
 import { getDashboardStats } from '@/lib/data-service';
+import { useAuth } from '@/components/AuthProvider';
 import { 
   Flame, 
   CheckCircle2, 
@@ -17,7 +18,8 @@ import {
   Wrench, 
   ArrowRight,
   Brain,
-  Library
+  Library,
+  User
 } from 'lucide-react';
 import ReviewButton from '@/components/ReviewButton';
 
@@ -33,11 +35,18 @@ const getSubjectIcon = (slug: string) => {
 };
 
 export default function HomePage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [mistakeCount, setMistakeCount] = useState(0);
   const greeting = new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening';
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  // Get display name from user metadata or email
+  const displayName = user?.user_metadata?.full_name 
+    || user?.user_metadata?.name 
+    || user?.email?.split('@')[0] 
+    || 'Plumber';
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -92,12 +101,21 @@ export default function HomePage() {
         <p className="text-xs font-semibold uppercase tracking-widest text-forest mb-1">
           {dateStr}
         </p>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-          Good {greeting}, Plumber
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Ready to master the code today?
-        </p>
+        <div className="flex items-center gap-3">
+          {user && (
+            <div className="w-10 h-10 rounded-full bg-forest/10 flex items-center justify-center text-forest flex-shrink-0">
+              <User className="w-5 h-5" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
+              Good {greeting}, {displayName}
+            </h1>
+            <p className="text-gray-500 text-sm">
+              Ready to master the code today?
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ===== BENTO GRID ===== */}

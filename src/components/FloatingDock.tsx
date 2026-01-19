@@ -152,6 +152,18 @@ export default function FloatingDock() {
           background: rgba(255,255,255,0.15);
           transform: scale(1.1);
         }
+        
+        /* Mobile styles */
+        @media (max-width: 480px) {
+          .dock-item {
+            width: 36px;
+            height: 36px;
+          }
+          .dock-item svg {
+            width: 18px !important;
+            height: 18px !important;
+          }
+        }
       `}</style>
     </>
   );
