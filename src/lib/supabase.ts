@@ -34,12 +34,12 @@ function getClient(): SupabaseClient | null {
 }
 
 // Export a proxy that handles unconfigured state gracefully
+// Export a proxy that handles unconfigured state gracefully
 export const supabase = new Proxy({} as SupabaseClient, {
   get(_, prop) {
     const client = getClient();
     
     if (!client) {
-      // Return no-op functions for auth methods to prevent crashes
       if (prop === 'auth') {
         return {
           signUp: async () => ({ data: { user: null, session: null }, error: { message: 'Supabase not configured' } }),
@@ -50,21 +50,36 @@ export const supabase = new Proxy({} as SupabaseClient, {
           onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
         };
       }
-      if (prop === 'from') {
-        return () => ({
-          select: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-          insert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-          update: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-          upsert: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-          delete: () => ({ data: null, error: { message: 'Supabase not configured' } }),
-        });
+
+      // Create a chainable mock for query builders
+      if (prop === 'from' || prop === 'rpc') {
+        return () => {
+          const mock: any = {
+            then: (resolve: any) => resolve({ data: null, error: { message: 'Supabase not configured' } }),
+          };
+          
+          // Common Supabase query methods
+          const methods = [
+            'select', 'insert', 'update', 'upsert', 'delete',
+            'eq', 'neq', 'gt', 'lt', 'gte', 'lte', 'like', 'ilike', 'in', 'is', 'contains', 
+            'order', 'limit', 'single', 'maybeSingle', 'csv'
+          ];
+          
+          methods.forEach(method => {
+            mock[method] = () => mock;
+          });
+          
+          return mock;
+        };
       }
+
       if (prop === 'storage') {
         return {
           from: () => ({
             upload: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
             download: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
             remove: async () => ({ data: null, error: { message: 'Supabase not configured' } }),
+            getPublicUrl: () => ({ data: { publicUrl: '' } }),
           }),
         };
       }
