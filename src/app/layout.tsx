@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import Navigation from '@/components/Navigation';
 import FloatingDock from '@/components/FloatingDock';
+import PageTransition from '@/components/PageTransition';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -30,7 +31,9 @@ export default function RootLayout({
           <div className="flex flex-col min-h-screen pb-24">
             <Navigation />
             <main className="container py-8 flex-grow relative">
-              {children}
+              <PageTransition>
+                {children}
+              </PageTransition>
             </main>
             <FloatingDock />
           </div>
