@@ -87,14 +87,13 @@ export default function FloatingDock() {
 
       {/* Floating Dock Bar - Pill Style, Sticky */}
       <motion.div 
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
+        initial={{ y: 100, opacity: 0, x: '-50%' }}
+        animate={{ y: 0, opacity: 1, x: '-50%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
         style={{
           position: 'fixed',
           bottom: '24px',
           left: '50%',
-          transform: 'translateX(-50%)',
           zIndex: 50,
         }}
       >
