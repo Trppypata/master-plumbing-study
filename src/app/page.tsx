@@ -176,11 +176,35 @@ export default function HomePage() {
           <DailyQuote />
         </motion.div>
 
-        {/* Daily Review Call to Action - 1x1 */}
         <motion.div variants={itemVariants} className="col-span-1 row-span-1 flex flex-col gap-2">
-           <Link href="/daily-review" className="h-full w-full">
+           <Link href="/daily-review" className="h-[60%] w-full">
               <ReviewButton />
            </Link>
+           <div className="h-[40%] bg-white rounded-xl border border-gray-100 p-3 flex flex-col items-center justify-center shadow-sm relative overflow-hidden">
+              <div className="flex items-center gap-1.5 z-10">
+                {[1, 2, 3, 4, 5].map((day) => {
+                  const isActive = day <= 3; // Mocking 3 day streak
+                  return (
+                    <div 
+                      key={day}
+                      className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-500
+                        ${isActive ? 'bg-orange-50 scale-110' : 'bg-gray-50'}`}
+                    >
+                      <Flame 
+                        className={`w-4 h-4 transition-all duration-500
+                          ${isActive ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-gray-300'}`} 
+                      />
+                      {isActive && (
+                        <div className="absolute inset-0 bg-orange-400/20 rounded-full animate-ping opacity-20"></div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-orange-500 mt-1 z-10">
+                3 Day Streak!
+              </p>
+           </div>
         </motion.div>
 
         {/* Mistake Bank - 1x1 */}
