@@ -163,50 +163,53 @@ export default function SpotifyPanel({ onClose }: { onClose: () => void }) {
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                 loading="lazy"
               />
-              
-              {/* Playback Controls Helper */}
-              <div className="absolute bottom-3 right-3 left-3 flex gap-2 justify-center pointer-events-none">
+            </div>
+
+            {/* Footer / Controls */}
+            <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 flex flex-col gap-2">
+              <div className="flex items-center justify-center gap-2">
                  <a 
                    href="https://accounts.spotify.com/en/login?continue=https://open.spotify.com" 
                    target="_blank"
                    rel="noopener noreferrer"
-                   className="pointer-events-auto bg-black/80 hover:bg-black text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors flex items-center gap-1.5"
+                   className="text-[10px] px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full transition-colors flex items-center gap-1.5"
+                   title="Log in to your Spotify account"
                  >
                    <User className="w-3 h-3" />
                    Log in
                  </a>
                  <button
                    onClick={() => {
-                     // Hack to force reload iframe by toggling key slightly
                      const current = currentPlaylist;
                      setCurrentPlaylist('');
                      setTimeout(() => setCurrentPlaylist(current), 10);
                    }}
-                   className="pointer-events-auto bg-black/80 hover:bg-black text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors flex items-center gap-1.5"
+                   className="text-[10px] px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full transition-colors flex items-center gap-1.5"
+                   title="Reload player"
                  >
                    <RotateCcw className="w-3 h-3" />
                    Reload
                  </button>
+              </div>
+              
+              <div className="flex items-center justify-center gap-2">
                  <a 
                    href={`spotify:playlist:${currentPlaylist}`} 
-                   className="pointer-events-auto bg-[#1DB954] hover:bg-[#1ed760] text-white text-[10px] px-3 py-1.5 rounded-full backdrop-blur-sm transition-colors flex items-center gap-1.5"
+                   className="text-[10px] px-3 py-1.5 bg-[#1DB954] hover:bg-[#1ed760] text-white rounded-full transition-colors flex items-center gap-1.5 font-medium"
                  >
                    <ExternalLink className="w-3 h-3" />
                    Open App
                  </a>
+                 <a 
+                    href={`https://open.spotify.com/playlist/${currentPlaylist}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-gray-400 hover:text-[#1DB954] px-2"
+                    title="Open Web Player"
+                  >
+                    Web Link ↗
+                  </a>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-3 py-2 bg-gray-50 border-t border-gray-100 text-center">
-              <a 
-                href={`https://open.spotify.com/playlist/${currentPlaylist}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] text-[#1DB954] hover:underline flex items-center justify-center gap-1"
-              >
-                Open in Spotify <ExternalLink className="w-3 h-3" />
-              </a>
             </div>
           </motion.div>
         )}
